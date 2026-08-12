@@ -73,7 +73,7 @@ export function RedirectsManager({ websiteId, initialRedirects }: { websiteId: s
             </div>
             <div className="w-32 space-y-2">
               <label className="text-sm font-medium text-muted-foreground">Type</label>
-              <Select value={type} onValueChange={setType}>
+              <Select value={type} onValueChange={(val: any) => setType(val)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

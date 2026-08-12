@@ -6,6 +6,8 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { SubscriptionTier, SubscriptionStatus } from "@prisma/client";
 import { stripeProvider } from "./providers/stripe";
+import { midtransProvider } from "./providers/midtrans";
+import { xenditProvider } from "./providers/xendit";
 import { getRemainingQuota } from "./entitlements";
 import { PLAN_LIMITS } from "./plans.config";
 
@@ -54,6 +56,15 @@ const TIER_RANK = {
   ENTERPRISE: 4,
 };
 
+function getProvider(gateway: string) {
+  switch (gateway.toUpperCase()) {
+    case "STRIPE": return stripeProvider;
+    case "MIDTRANS": return midtransProvider;
+    case "XENDIT": return xenditProvider;
+    default: return stripeProvider;
+  }
+}
+
 export async function changeSubscriptionTier(tier: SubscriptionTier, gateway: string = "STRIPE", currency: string = "USD") {
   const workspaceId = await getWorkspaceAccess();
   
@@ -78,17 +89,20 @@ export async function changeSubscriptionTier(tier: SubscriptionTier, gateway: st
     }
   }
 
-  // Create checkout session via provider
-  const result = await stripeProvider.createCheckoutSession({
-    workspaceId,
-    tier,
-    successUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/billing?success=true`,
-    cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/billing?canceled=true`
-  });
-
-  // DO NOT update the tier or status here. The webhook will handle it when payment succeeds.
-  // We just return the redirect URL for the frontend.
-  return { url: result.url };
+  const provider = getProvider(gateway);
+  
+  try {
+    const result = await provider.createCheckoutSession({
+      workspaceId,
+      tier,
+      successUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/billing?success=true`,
+      cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/billing?canceled=true`
+    });
+    return { url: result.url };
+  } catch (error: any) {
+    console.error(`[Billing] Failed to create checkout session with ${gateway}:`, error);
+    throw new Error(error.message || `The payment gateway ${gateway} is currently unavailable or misconfigured.`);
+  }
 }
 
 export async function cancelSubscription() {

@@ -78,7 +78,7 @@ export function WebsiteFilters() {
       <div className="flex items-center gap-4 w-full sm:w-auto">
         <Select 
           value={sort} 
-          onValueChange={(val: string) => updateQueryParams({ sort: val, page: "1" })}
+          onValueChange={(val: any) => updateQueryParams({ sort: val, page: "1" })}
         >
           <SelectTrigger className="w-[180px] bg-background">
             <SelectValue placeholder="Sort by" />

@@ -3,54 +3,91 @@ import { PaymentProvider, CreateCheckoutSessionParams } from "./base";
 import { PLAN_LIMITS } from "../plans.config";
 
 export class XenditProvider implements PaymentProvider {
-  private secretKey = process.env.XENDIT_SECRET_KEY || "";
-  private webhookToken = process.env.XENDIT_WEBHOOK_TOKEN || "";
+  private getSecretKey(): string {
+    const key = process.env.XENDIT_SECRET_KEY || "";
+    if (!key) {
+      throw new Error("Xendit is not configured correctly. Missing XENDIT_SECRET_KEY.");
+    }
+    return key;
+  }
+
+  private getWebhookToken(): string {
+    const token = process.env.XENDIT_WEBHOOK_TOKEN || "";
+    if (!token) {
+      console.warn("[Xendit] Warning: XENDIT_WEBHOOK_TOKEN is not configured.");
+    }
+    return token;
+  }
   
   async createCheckoutSession(params: CreateCheckoutSessionParams): Promise<{ url: string }> {
-    if (!this.secretKey) {
-      console.warn("[Xendit] Missing SECRET_KEY. Simulating successful checkout.");
-      return { url: `${params.successUrl}?session_id=mock_xendit_${Date.now()}` };
-    }
-
+    const secretKey = this.getSecretKey();
     const plan = PLAN_LIMITS[params.tier];
     if (!plan) throw new Error("Invalid tier config for Xendit");
 
-    // Mock representation of Xendit Invoice creation API
     const invoiceId = `inv-${params.workspaceId}-${Date.now()}`;
+    
+    // We assume IDR pricing
+    const amount = params.tier === "FREE" ? 0 : 
+                   params.tier === "STARTER" ? 285000 : 
+                   params.tier === "PRO" ? 735000 : 
+                   params.tier === "BUSINESS" ? 1500000 : 4500000;
+
+    if (amount === 0) {
+      throw new Error("Cannot create a checkout session for a free tier.");
+    }
+
     const payload = {
       external_id: invoiceId,
-      amount: params.tier === "PRO" ? 290000 : 990000, // example IDR pricing
+      amount: amount,
       payer_email: "billing@workspace.com",
       description: `Subscription to ${params.tier}`,
       success_redirect_url: params.successUrl,
       failure_redirect_url: params.cancelUrl
     };
 
-    return { url: `${params.successUrl}?session_id=mock_xendit_${invoiceId}` };
+    const authString = Buffer.from(`${secretKey}:`).toString("base64");
+
+    const response = await fetch("https://api.xendit.co/v2/invoices", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Basic ${authString}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("[Xendit] Failed to create invoice:", text);
+      throw new Error("Failed to create Xendit checkout session.");
+    }
+
+    const data = await response.json();
+    if (!data.invoice_url) {
+      throw new Error("Failed to retrieve invoice_url from Xendit.");
+    }
+
+    return { url: data.invoice_url };
   }
 
   async createCustomer(workspaceId: string, email: string, name: string): Promise<string> {
-    // Return a mock Xendit customer ID
     return `xendit_cust_${workspaceId}`;
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {
-    if (!this.secretKey) {
-      console.warn(`[Xendit] Mock cancelling subscription ${subscriptionId}`);
-      return;
-    }
+    const secretKey = this.getSecretKey();
+    // Implementation for Xendit cancellation if using recurring payments
   }
 
   async changeSubscription(subscriptionId: string, newTier: SubscriptionTier): Promise<void> {
-    if (!this.secretKey) {
-      console.warn(`[Xendit] Mock changing subscription ${subscriptionId} to ${newTier}`);
-      return;
-    }
+    const secretKey = this.getSecretKey();
+    // Implementation for Xendit subscription change
   }
 
   verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
-    // Xendit usually checks x-callback-token
-    return signature === this.webhookToken;
+    const webhookToken = this.getWebhookToken();
+    if (!webhookToken) return true; // Accept if no token is configured in dev
+    return signature === webhookToken;
   }
 }
 

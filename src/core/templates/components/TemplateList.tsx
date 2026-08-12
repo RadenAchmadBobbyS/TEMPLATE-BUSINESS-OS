@@ -1,16 +1,16 @@
-import { EmptyState } from "@/shared/ui/empty-state";
-import { TemplateCard } from "./TemplateCard";
-import { StaggerContainer, StaggerItem, FadeIn } from "@/shared/ui/motion";
+import { EmptyState } from '@/shared/ui/empty-state';
+import { TemplateCard } from './TemplateCard';
+import { StaggerContainer, StaggerItem, FadeIn } from '@/shared/ui/motion';
 
 type Template = {
   id: string;
   name: string;
-  isPremium: boolean;
+  requiredTier: string;
   category: { name: string };
   industry: { name: string };
 };
 
-export function TemplateList({ templates }: { templates: Template[] }) {
+export function TemplateList({ templates, userTier }: { templates: Template[]; userTier: string }) {
   if (templates.length === 0) {
     return (
       <FadeIn>
@@ -26,7 +26,7 @@ export function TemplateList({ templates }: { templates: Template[] }) {
     <StaggerContainer className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {templates.map((template) => (
         <StaggerItem key={template.id}>
-          <TemplateCard template={template} />
+          <TemplateCard template={template} userTier={userTier} />
         </StaggerItem>
       ))}
     </StaggerContainer>

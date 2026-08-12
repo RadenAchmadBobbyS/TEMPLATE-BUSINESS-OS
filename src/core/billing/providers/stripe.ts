@@ -3,15 +3,21 @@ import { PaymentProvider, CreateCheckoutSessionParams } from "./base";
 import { SubscriptionTier } from "@prisma/client";
 import { STRIPE_PRICE_IDS } from "./stripe-config";
 
-// Initialize Stripe with the server-side secret key
-// We omit apiVersion to let the Stripe SDK use its default target version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
-
 export class StripeProvider implements PaymentProvider {
+  private getStripeClient(): Stripe {
+    const key = process.env.STRIPE_SECRET_KEY || "";
+    if (!key || key === "sk_test_123" || key.includes("test_123")) {
+      throw new Error("Stripe is not configured correctly. Please provide a valid STRIPE_SECRET_KEY.");
+    }
+    return new Stripe(key);
+  }
+
   async createCheckoutSession(params: CreateCheckoutSessionParams): Promise<{ url: string }> {
+    const stripe = this.getStripeClient();
     const priceId = STRIPE_PRICE_IDS[params.tier];
-    if (!priceId) {
-      throw new Error(`Invalid tier ${params.tier} for checkout.`);
+    
+    if (!priceId || priceId.includes("mock_")) {
+      throw new Error(`Stripe is not configured correctly. Missing valid price ID for tier ${params.tier}.`);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -41,6 +47,7 @@ export class StripeProvider implements PaymentProvider {
   }
 
   async createCustomer(workspaceId: string, email: string, name: string): Promise<string> {
+    const stripe = this.getStripeClient();
     const customer = await stripe.customers.create({
       email,
       name,
@@ -53,15 +60,17 @@ export class StripeProvider implements PaymentProvider {
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {
+    const stripe = this.getStripeClient();
     await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
     });
   }
 
   async changeSubscription(subscriptionId: string, newTier: SubscriptionTier): Promise<void> {
+    const stripe = this.getStripeClient();
     const newPriceId = STRIPE_PRICE_IDS[newTier];
-    if (!newPriceId) {
-      throw new Error(`Cannot change to tier ${newTier}: No price ID configured`);
+    if (!newPriceId || newPriceId.includes("mock_")) {
+      throw new Error(`Cannot change to tier ${newTier}: Stripe is not configured correctly.`);
     }
 
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
@@ -85,6 +94,7 @@ export class StripeProvider implements PaymentProvider {
   }
 
   verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {
+    const stripe = this.getStripeClient();
     try {
       stripe.webhooks.constructEvent(payload, signature, secret);
       return true;

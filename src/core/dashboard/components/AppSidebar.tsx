@@ -67,12 +67,13 @@ export function AppSidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
       style={{ borderColor: 'var(--line)', backgroundColor: 'var(--paper)' }}
     >
       <SidebarHeader
-        className="flex h-16 items-center justify-center border-b px-4"
+        className="flex flex-col gap-5 border-b p-4 pt-5"
         style={{ borderColor: 'var(--line)' }}
       >
         <div className="flex w-full items-center justify-between">
           <BlueprintLogo className="origin-left scale-75" />
         </div>
+        <WorkspaceSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

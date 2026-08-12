@@ -6,8 +6,19 @@ export type PlanLimits = {
   maxStorageBytes: number;
   maxTeamMembers: number;
   maxCustomDomainsPerWebsite: number;
-  hasAdvancedSeo: boolean;
+  hasCustomDomains: boolean;
+  hasFormBuilder: boolean;
+  hasAdvancedMedia: boolean;
+  hasRoleBasedAccess: boolean;
   hasWhiteLabeling: boolean;
+  hasAdvancedSeo: boolean;
+  hasLargeStorage: boolean;
+  hasDedicatedSupport: boolean;
+  hasSlaSupport: boolean;
+  hasCustomContracts: boolean;
+  hasOnPremise: boolean;
+  hasAdvancedAnalytics: boolean;
+  hasBasicAnalytics: boolean;
 };
 
 export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
@@ -16,9 +27,20 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     maxPagesPerWebsite: 5,
     maxStorageBytes: 100 * 1024 * 1024, // 100MB
     maxTeamMembers: 1,
-    maxCustomDomainsPerWebsite: 1,
-    hasAdvancedSeo: false,
+    maxCustomDomainsPerWebsite: 0,
+    hasCustomDomains: false,
+    hasFormBuilder: false,
+    hasAdvancedMedia: false,
+    hasRoleBasedAccess: false,
     hasWhiteLabeling: false,
+    hasAdvancedSeo: false,
+    hasLargeStorage: false,
+    hasDedicatedSupport: false,
+    hasSlaSupport: false,
+    hasCustomContracts: false,
+    hasOnPremise: false,
+    hasAdvancedAnalytics: false,
+    hasBasicAnalytics: true,
   },
   STARTER: {
     maxWebsites: 3,
@@ -26,8 +48,19 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     maxStorageBytes: 500 * 1024 * 1024, // 500MB
     maxTeamMembers: 3,
     maxCustomDomainsPerWebsite: 3,
-    hasAdvancedSeo: true,
+    hasCustomDomains: true,
+    hasFormBuilder: true,
+    hasAdvancedMedia: false,
+    hasRoleBasedAccess: false,
     hasWhiteLabeling: false,
+    hasAdvancedSeo: false,
+    hasLargeStorage: false,
+    hasDedicatedSupport: false,
+    hasSlaSupport: false,
+    hasCustomContracts: false,
+    hasOnPremise: false,
+    hasAdvancedAnalytics: false,
+    hasBasicAnalytics: true,
   },
   PRO: {
     maxWebsites: 10,
@@ -35,8 +68,19 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     maxStorageBytes: 5 * 1024 * 1024 * 1024, // 5GB
     maxTeamMembers: 10,
     maxCustomDomainsPerWebsite: 10,
-    hasAdvancedSeo: true,
+    hasCustomDomains: true,
+    hasFormBuilder: true,
+    hasAdvancedMedia: true,
+    hasRoleBasedAccess: true,
     hasWhiteLabeling: true,
+    hasAdvancedSeo: false,
+    hasLargeStorage: false,
+    hasDedicatedSupport: false,
+    hasSlaSupport: false,
+    hasCustomContracts: false,
+    hasOnPremise: false,
+    hasAdvancedAnalytics: true,
+    hasBasicAnalytics: true,
   },
   BUSINESS: {
     maxWebsites: 50,
@@ -44,8 +88,19 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     maxStorageBytes: 50 * 1024 * 1024 * 1024, // 50GB
     maxTeamMembers: 50,
     maxCustomDomainsPerWebsite: 50,
-    hasAdvancedSeo: true,
+    hasCustomDomains: true,
+    hasFormBuilder: true,
+    hasAdvancedMedia: true,
+    hasRoleBasedAccess: true,
     hasWhiteLabeling: true,
+    hasAdvancedSeo: true,
+    hasLargeStorage: true,
+    hasDedicatedSupport: true,
+    hasSlaSupport: false,
+    hasCustomContracts: false,
+    hasOnPremise: false,
+    hasAdvancedAnalytics: true,
+    hasBasicAnalytics: true,
   },
   ENTERPRISE: {
     maxWebsites: 999999,
@@ -53,7 +108,18 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     maxStorageBytes: 1024 * 1024 * 1024 * 1024, // 1TB
     maxTeamMembers: 999999,
     maxCustomDomainsPerWebsite: 999999,
-    hasAdvancedSeo: true,
+    hasCustomDomains: true,
+    hasFormBuilder: true,
+    hasAdvancedMedia: true,
+    hasRoleBasedAccess: true,
     hasWhiteLabeling: true,
+    hasAdvancedSeo: true,
+    hasLargeStorage: true,
+    hasDedicatedSupport: true,
+    hasSlaSupport: true,
+    hasCustomContracts: true,
+    hasOnPremise: true,
+    hasAdvancedAnalytics: true,
+    hasBasicAnalytics: true,
   },
 };

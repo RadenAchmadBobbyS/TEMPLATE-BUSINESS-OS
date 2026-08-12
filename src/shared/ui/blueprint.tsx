@@ -57,7 +57,7 @@ export function AuthShell({
   return (
     <div
       className="relative flex h-screen w-full flex-col items-center justify-center overflow-hidden px-4"
-      style={{ backgroundColor: 'var(--paper)', fontFamily: 'Inter, sans-serif' }}
+      style={{ backgroundColor: 'var(--paper)' }}
     >
       <GridBackdrop />
 
@@ -125,7 +125,7 @@ export function PageHeader({
         {description && (
           <p
             className="mt-1 text-sm max-w-2xl"
-            style={{ color: 'var(--slate)', fontFamily: 'Inter, sans-serif' }}
+            style={{ color: 'var(--slate)' }}
           >
             {description}
           </p>

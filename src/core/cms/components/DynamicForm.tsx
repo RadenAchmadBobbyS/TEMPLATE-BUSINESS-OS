@@ -115,7 +115,7 @@ export function DynamicForm({ model, entry }: { model: any, entry: any }) {
 
             <div className="space-y-2 pt-4 border-t">
               <Label>Update Status</Label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(val: any) => setStatus(val)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

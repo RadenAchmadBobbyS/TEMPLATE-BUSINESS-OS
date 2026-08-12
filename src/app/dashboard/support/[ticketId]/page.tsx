@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Badge } from '@/shared/ui/badge';
 import { ReplyForm } from '@/core/support/components/ReplyForm';
 import Link from 'next/link';
-import { ArrowLeft, User, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, User, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { CornerMarks } from '@/shared/ui/blueprint';
 import { StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 
@@ -77,24 +77,18 @@ export default async function TicketDetailsPage({ params }: { params: { ticketId
         </div>
       </StaggerItem>
 
-      <StaggerItem className="space-y-4">
+      {/* Reply thread with a connecting timeline line */}
+      <StaggerItem className="relative space-y-4 pl-2">
+        <div
+          className="pointer-events-none absolute top-2 bottom-2 left-[27px] w-px"
+          style={{ backgroundColor: 'var(--line)' }}
+        />
         {ticket.replies.map((reply) => {
           const isStaff = reply.authorUser?.isSuperAdmin;
           return (
-            <div
-              key={reply.id}
-              className={`relative flex gap-4 rounded-none p-4 shadow-[2px_2px_0px_var(--ink)] ${
-                isStaff ? 'border-2 border-[var(--signal)] bg-[rgba(36,81,255,0.05)]' : 'border-2'
-              }`}
-              style={
-                !isStaff
-                  ? { borderColor: 'var(--ink)', backgroundColor: 'var(--paper)' }
-                  : undefined
-              }
-            >
-              {isStaff && <CornerMarks />}
+            <div key={reply.id} className="relative flex gap-4">
               <div
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border"
+                className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-none border"
                 style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--line)' }}
               >
                 {isStaff ? (
@@ -103,28 +97,40 @@ export default async function TicketDetailsPage({ params }: { params: { ticketId
                   <User className="h-5 w-5" style={{ color: 'var(--slate)' }} />
                 )}
               </div>
-              <div className="z-10 flex-1 space-y-1">
-                <div className="flex items-center justify-between">
-                  <div
-                    className="font-display flex items-center gap-2 text-sm font-bold"
-                    style={{ color: 'var(--ink)' }}
-                  >
-                    {reply.authorUser?.name || 'System'}
-                    {isStaff && (
-                      <Badge className="font-data h-4 rounded-none bg-[var(--signal)] text-[10px] font-bold tracking-wider text-white uppercase">
-                        STAFF
-                      </Badge>
-                    )}
+              <div
+                className={`relative flex-1 rounded-none p-4 shadow-[2px_2px_0px_var(--ink)] ${
+                  isStaff ? 'border-2 border-[var(--signal)] bg-[rgba(36,81,255,0.05)]' : 'border-2'
+                }`}
+                style={
+                  !isStaff
+                    ? { borderColor: 'var(--ink)', backgroundColor: 'var(--paper)' }
+                    : undefined
+                }
+              >
+                {isStaff && <CornerMarks />}
+                <div className="relative z-10 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="font-display flex items-center gap-2 text-sm font-bold"
+                      style={{ color: 'var(--ink)' }}
+                    >
+                      {reply.authorUser?.name || 'System'}
+                      {isStaff && (
+                        <Badge className="font-data h-4 rounded-none bg-[var(--signal)] text-[10px] font-bold tracking-wider text-white uppercase">
+                          STAFF
+                        </Badge>
+                      )}
+                    </div>
+                    <span
+                      className="font-data text-[10px] font-bold tracking-wider uppercase"
+                      style={{ color: 'var(--slate)' }}
+                    >
+                      {format(new Date(reply.createdAt), 'MMM d, h:mm a')}
+                    </span>
                   </div>
-                  <span
-                    className="font-data text-[10px] font-bold tracking-wider uppercase"
-                    style={{ color: 'var(--slate)' }}
-                  >
-                    {format(new Date(reply.createdAt), 'MMM d, h:mm a')}
-                  </span>
-                </div>
-                <div className="pt-2 text-sm whitespace-pre-wrap" style={{ color: 'var(--ink)' }}>
-                  {reply.messageBody}
+                  <div className="pt-2 text-sm whitespace-pre-wrap" style={{ color: 'var(--ink)' }}>
+                    {reply.messageBody}
+                  </div>
                 </div>
               </div>
             </div>
@@ -140,7 +146,7 @@ export default async function TicketDetailsPage({ params }: { params: { ticketId
 
       {ticket.status === 'CLOSED' && (
         <StaggerItem
-          className="font-data mt-8 rounded-none border-2 p-6 text-center text-[10px] font-bold tracking-wider uppercase"
+          className="font-data mt-8 flex items-center justify-center gap-2 rounded-none border-2 p-6 text-center text-[10px] font-bold tracking-wider uppercase"
           style={{
             borderColor: 'var(--ink)',
             boxShadow: '2px 2px 0px var(--ink)',
@@ -148,6 +154,7 @@ export default async function TicketDetailsPage({ params }: { params: { ticketId
             color: 'var(--slate)',
           }}
         >
+          <CheckCircle2 className="h-4 w-4" style={{ color: 'var(--signal)' }} />
           This ticket has been closed. Please open a new ticket if you need further assistance.
         </StaggerItem>
       )}

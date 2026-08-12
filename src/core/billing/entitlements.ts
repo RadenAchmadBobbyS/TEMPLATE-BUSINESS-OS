@@ -87,3 +87,33 @@ export async function canUseFeature(
 
   return true; // For numeric limits, we need `getRemainingQuota` instead.
 }
+
+export async function requireFeature(workspaceId: string, feature: keyof PlanLimits) {
+  const allowed = await canUseFeature(workspaceId, feature);
+  if (!allowed) {
+    throw new Error(`Your current plan does not include access to ${feature}. Please upgrade your plan.`);
+  }
+}
+
+export async function requireQuota(
+  workspaceId: string,
+  resource: 'websites' | 'pages' | 'storage' | 'team_members'
+) {
+  const quota = await getRemainingQuota(workspaceId, resource);
+  if (quota.remaining <= 0) {
+    throw new Error(`You have reached the maximum allowed limit for ${resource} on your current plan. Please upgrade to increase your limit.`);
+  }
+}
+
+export async function hasTemplateAccess(
+  workspaceId: string,
+  requiredTier: SubscriptionTier,
+): Promise<boolean> {
+  const plan = await getWorkspacePlan(workspaceId);
+  const tiers: SubscriptionTier[] = ['FREE', 'STARTER', 'PRO', 'BUSINESS', 'ENTERPRISE'];
+  
+  const userTierIndex = tiers.indexOf(plan.tier);
+  const requiredTierIndex = tiers.indexOf(requiredTier);
+  
+  return userTierIndex >= requiredTierIndex;
+}

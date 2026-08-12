@@ -14,13 +14,39 @@ import { Badge } from "@/shared/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/ui/select";
 import { CornerMarks } from "@/shared/ui/blueprint";
 
+import { PLAN_LIMITS } from "@/core/billing/plans.config";
+
+function getFeaturesForTier(tierId: SubscriptionTier) {
+  const limits = PLAN_LIMITS[tierId];
+  const features = [];
+  
+  if (limits.maxWebsites > 1000) features.push("Unlimited Websites");
+  else features.push(`Up to ${limits.maxWebsites} Websites`);
+
+  if (limits.hasCustomDomains) features.push("Custom Domains");
+  if (limits.hasFormBuilder) features.push("Form Builder");
+  if (limits.hasAdvancedMedia) features.push("Advanced Media Engine");
+  if (limits.hasRoleBasedAccess) features.push("Role-based Access");
+  if (limits.hasWhiteLabeling) features.push("White-labeling");
+  if (limits.hasAdvancedSeo) features.push("Advanced SEO");
+  if (limits.hasLargeStorage) features.push("Large Storage");
+  if (limits.hasDedicatedSupport) features.push("Dedicated Account Manager");
+  if (limits.hasSlaSupport) features.push("SLA Support");
+  if (limits.hasCustomContracts) features.push("Custom Contracts");
+  if (limits.hasOnPremise) features.push("On-premise Options");
+  if (limits.hasAdvancedAnalytics) features.push("Advanced Analytics");
+  else if (limits.hasBasicAnalytics) features.push("Basic Analytics");
+
+  return features;
+}
+
 const TIERS = [
   {
     id: "FREE" as SubscriptionTier,
     name: "Free",
     price: "$0",
     description: "Perfect for exploring the platform.",
-    features: ["1 Workspace", "3 Websites", "Basic Analytics", "Community Support"],
+    features: getFeaturesForTier("FREE"),
     color: "bg-muted text-muted-foreground border-muted",
   },
   {
@@ -29,7 +55,7 @@ const TIERS = [
     price: "$19",
     period: "/mo",
     description: "Essential tools for small businesses.",
-    features: ["Custom Domains", "Up to 3 Websites", "Form Builder", "Email Support"],
+    features: getFeaturesForTier("STARTER"),
     color: "bg-blue-500 text-white border-blue-500",
   },
   {
@@ -38,7 +64,7 @@ const TIERS = [
     price: "$49",
     period: "/mo",
     description: "Advanced features for growing teams.",
-    features: ["Up to 10 Websites", "Advanced Media Engine", "Role-based Access", "Priority 24/7 Support", "White-labeling"],
+    features: getFeaturesForTier("PRO"),
     color: "bg-primary text-primary-foreground border-primary",
     popular: true
   },
@@ -48,7 +74,7 @@ const TIERS = [
     price: "$99",
     period: "/mo",
     description: "For mature businesses needing scale.",
-    features: ["Up to 50 Websites", "Advanced SEO", "Large Storage", "Dedicated Account Manager"],
+    features: getFeaturesForTier("BUSINESS"),
     color: "bg-purple-500 text-white border-purple-500",
   },
   {
@@ -57,7 +83,7 @@ const TIERS = [
     price: "$299",
     period: "/mo",
     description: "Maximum power and unlimited scale.",
-    features: ["Unlimited Websites", "Custom Contracts", "SLA Support", "On-premise Options"],
+    features: getFeaturesForTier("ENTERPRISE"),
     color: "bg-slate-900 text-white border-slate-900",
   }
 ];
@@ -187,7 +213,7 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
           <p className="text-xs text-muted-foreground">Select your region to use local gateways (Midtrans, Xendit).</p>
         </div>
         <div className="flex gap-2">
-          <Select value={gateway} onValueChange={setGateway}>
+          <Select value={gateway} onValueChange={(val: any) => setGateway(val)}>
             <SelectTrigger className="w-[140px] bg-background">
               <SelectValue placeholder="Gateway" />
             </SelectTrigger>
@@ -197,7 +223,7 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
               <SelectItem value="XENDIT">Xendit (SE-Asia)</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={currency} onValueChange={setCurrency}>
+          <Select value={currency} onValueChange={(val: any) => setCurrency(val)}>
             <SelectTrigger className="w-[100px] bg-background">
               <SelectValue placeholder="Currency" />
             </SelectTrigger>

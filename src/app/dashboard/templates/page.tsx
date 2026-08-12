@@ -9,10 +9,30 @@ import { LoadingState } from '@/shared/ui/loading-state';
 import { Button } from '@/shared/ui/button';
 import { StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 import { PageHeader, btnOutline } from '@/shared/ui/blueprint';
+import { getActiveWorkspace } from '@/core/workspaces/server-context';
+import { getWorkspacePlan } from '@/core/billing/entitlements';
+import { SubscriptionTier } from '@prisma/client';
 
-async function TemplatesData({ search, categoryId }: { search?: string; categoryId?: string }) {
-  const templates = await getTemplates({ search, categoryId });
-  return <TemplateList templates={templates} />;
+async function TemplatesData({
+  search,
+  categoryId,
+  tier,
+  industryId,
+  userTier,
+}: {
+  search?: string;
+  categoryId?: string;
+  tier?: string;
+  industryId?: string;
+  userTier: SubscriptionTier;
+}) {
+  const templates = await getTemplates({
+    search,
+    categoryId,
+    tier: tier as SubscriptionTier,
+    industryId,
+  });
+  return <TemplateList templates={templates} userTier={userTier} />;
 }
 
 export default async function TemplatesPage({
@@ -23,8 +43,17 @@ export default async function TemplatesPage({
   const params = await searchParams;
   const search = typeof params.search === 'string' ? params.search : undefined;
   const categoryId = typeof params.category === 'string' ? params.category : undefined;
+  const tier = typeof params.tier === 'string' ? params.tier : undefined;
+  const industryId = typeof params.industry === 'string' ? params.industry : undefined;
 
   const categories = await getCategories();
+
+  const active = await getActiveWorkspace();
+  let userTier: SubscriptionTier = 'FREE';
+  if (active) {
+    const plan = await getWorkspacePlan(active.workspace.id);
+    userTier = plan.tier;
+  }
 
   return (
     <StaggerContainer className="space-y-6">
@@ -45,7 +74,7 @@ export default async function TemplatesPage({
       </StaggerItem>
 
       <StaggerItem>
-        <RecentlyUsedCarousel />
+        <RecentlyUsedCarousel userTier={userTier} />
       </StaggerItem>
 
       <StaggerItem>
@@ -54,7 +83,13 @@ export default async function TemplatesPage({
 
       <StaggerItem>
         <Suspense fallback={<LoadingState message="Loading templates..." />}>
-          <TemplatesData search={search} categoryId={categoryId} />
+          <TemplatesData
+            search={search}
+            categoryId={categoryId}
+            tier={tier}
+            industryId={industryId}
+            userTier={userTier}
+          />
         </Suspense>
       </StaggerItem>
     </StaggerContainer>

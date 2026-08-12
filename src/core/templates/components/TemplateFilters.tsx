@@ -1,34 +1,40 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Search } from "lucide-react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
-import { Input } from "@/shared/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import { PageToolbar } from '@/shared/ui/page-toolbar';
 
 type Category = {
   id: string;
   name: string;
 };
 
-export function TemplateFilters({ categories }: { categories: Category[] }) {
+const TIER_LABELS: Record<string, string> = {
+  all: 'All Tiers',
+  FREE: 'Free',
+  STARTER: 'Starter',
+  PRO: 'Pro',
+  BUSINESS: 'Business',
+  ENTERPRISE: 'Enterprise',
+};
+
+export function TemplateFilters({
+  categories,
+}: {
+  categories: Category[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const currentSearch = searchParams.get("search") || "";
-  const currentCategory = searchParams.get("category") || "all";
+  const currentSearch = searchParams.get('search') || '';
+  const currentCategory = searchParams.get('category') || 'all';
+  const currentTier = searchParams.get('tier') || 'all';
 
   const updateFilters = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value && value !== "all") {
+    if (value && value !== 'all') {
       params.set(key, value);
     } else {
       params.delete(key);
@@ -37,37 +43,87 @@ export function TemplateFilters({ categories }: { categories: Category[] }) {
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mb-6">
-      <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search templates..."
-          className="pl-8"
-          defaultValue={currentSearch}
-          onChange={(e) => {
-            // Simple debounce can be added here, for now direct update
-            updateFilters("search", e.target.value);
-          }}
-        />
-      </div>
-      <div className="w-full sm:w-[200px]">
-        <Select
-          defaultValue={currentCategory}
-          onValueChange={(val: string) => updateFilters("category", val)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
+    <PageToolbar
+      search={currentSearch}
+      searchPlaceholder="Search templates..."
+      actions={
+        <div className="flex gap-2">
+          <Select
+            value={currentTier}
+            onValueChange={(value) => updateFilters('tier', value as string)}
+          >
+            <SelectTrigger
+              className="font-data h-9 w-[140px] shrink-0 rounded-none border-2 text-xs"
+              style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--paper)' }}
+            >
+              <SelectValue placeholder="All Tiers">
+                {(value: string) => TIER_LABELS[value] || 'All Tiers'}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              className="rounded-none border-2"
+              style={{
+                borderColor: 'var(--ink)',
+                boxShadow: '4px 4px 0px var(--ink)',
+                backgroundColor: 'var(--paper)',
+              }}
+            >
+              <SelectItem value="all" className="font-data text-xs">
+                All Tiers
               </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+              <SelectItem value="FREE" className="font-data text-xs">
+                Free
+              </SelectItem>
+              <SelectItem value="STARTER" className="font-data text-xs">
+                Starter
+              </SelectItem>
+              <SelectItem value="PRO" className="font-data text-xs">
+                Pro
+              </SelectItem>
+              <SelectItem value="BUSINESS" className="font-data text-xs">
+                Business
+              </SelectItem>
+              <SelectItem value="ENTERPRISE" className="font-data text-xs">
+                Enterprise
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={currentCategory}
+            onValueChange={(value) => updateFilters('category', value as string)}
+          >
+            <SelectTrigger
+              className="font-data h-9 w-[160px] shrink-0 rounded-none border-2 text-xs"
+              style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--paper)' }}
+            >
+              <SelectValue placeholder="All Categories">
+                {(value: string) => {
+                  if (!value || value === 'all') return 'All Categories';
+                  return categories.find(c => c.id === value)?.name || value;
+                }}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent
+              className="rounded-none border-2"
+              style={{
+                borderColor: 'var(--ink)',
+                boxShadow: '4px 4px 0px var(--ink)',
+                backgroundColor: 'var(--paper)',
+              }}
+            >
+              <SelectItem value="all" className="font-data text-xs">
+                All Categories
+              </SelectItem>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id} className="font-data text-xs">
+                  {cat.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      }
+    />
   );
 }

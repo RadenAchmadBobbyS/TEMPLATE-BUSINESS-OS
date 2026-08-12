@@ -4,6 +4,7 @@ import { prisma } from "@/shared/lib/prisma";
 import { auth } from "@/core/auth/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { hasTemplateAccess } from "@/core/billing/entitlements";
 
 export async function applyTemplateToWebsite(templateId: string, websiteId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -27,6 +28,11 @@ export async function applyTemplateToWebsite(templateId: string, websiteId: stri
   });
 
   if (!template) throw new Error("Template not found");
+
+  const hasAccess = await hasTemplateAccess(role.workspaceId, (template as any).requiredTier);
+  if (!hasAccess) {
+    throw new Error(`This template requires the ${(template as any).requiredTier} plan or higher.`);
+  }
 
   let page = await prisma.page.findFirst({
     where: { websiteId, slug: "/" },
@@ -114,7 +120,7 @@ export async function importCustomTemplate(jsonString: string) {
       categoryId: category.id,
       industryId: industry.id,
       defaultTree: parsed.defaultTree,
-      isPremium: false,
+      requiredTier: "FREE",
     },
   });
 

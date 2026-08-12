@@ -139,7 +139,7 @@ export function MenuBuilder({ website, initialNav, pages }: { website: any, init
                   {item.type === "page" ? (
                     <Select 
                       value={item.pageId || ""} 
-                      onValueChange={(val: string) => handleUpdateItem(item.id, { pageId: val, target: undefined })}
+                      onValueChange={(val: any) => handleUpdateItem(item.id, { pageId: val, target: undefined })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a page..." />

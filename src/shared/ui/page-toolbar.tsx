@@ -49,7 +49,8 @@ export function PageToolbar({
         className="relative flex w-full items-center lg:max-w-sm"
         onSubmit={(e) => {
           e.preventDefault();
-          const value = (e.currentTarget.elements.namedItem(searchParamName) as HTMLInputElement).value;
+          const value = (e.currentTarget.elements.namedItem(searchParamName) as HTMLInputElement)
+            .value;
           updateSearch(value);
         }}
       >
@@ -68,7 +69,7 @@ export function PageToolbar({
 
       {/* Actions (Filter, View Toggle, etc) */}
       {actions && (
-        <div className="flex items-center gap-3 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0">
+        <div className="flex w-full items-center gap-3 overflow-x-auto pb-1 lg:w-auto lg:pb-0">
           {actions}
         </div>
       )}

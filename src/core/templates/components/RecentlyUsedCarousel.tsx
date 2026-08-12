@@ -9,13 +9,13 @@ import { Clock } from 'lucide-react';
 type Template = {
   id: string;
   name: string;
-  isPremium: boolean;
+  requiredTier: string;
   category: { name: string };
   industry: { name: string };
   defaultTree?: any;
 };
 
-export function RecentlyUsedCarousel() {
+export function RecentlyUsedCarousel({ userTier }: { userTier: string }) {
   const [recentTemplates, setRecentTemplates] = useState<Template[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,7 +60,7 @@ export function RecentlyUsedCarousel() {
         <div className="flex w-max space-x-4">
           {recentTemplates.map((template) => (
             <div key={template.id} className="inline-block w-[300px]">
-              <TemplateCard template={template} />
+              <TemplateCard template={template} userTier={userTier} />
             </div>
           ))}
         </div>

@@ -34,3 +34,4 @@
   ],
   "exclude": ["node_modules", "vitest.config.ts", "__tests__", "e2e", "playwright.config.ts"]
 }
+// Trigger TS server reload

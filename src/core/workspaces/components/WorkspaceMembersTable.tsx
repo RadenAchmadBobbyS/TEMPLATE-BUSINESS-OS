@@ -130,12 +130,12 @@ export function WorkspaceMembersTable() {
 
         {isAdmin && (
           <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-            <DialogTrigger>
+            <DialogTrigger render={
               <Button size="sm" className="rounded-none border-2 border-[var(--ink)] shadow-[2px_2px_0px_var(--ink)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all">
                 <MailPlus className="mr-2 h-4 w-4" />
                 Invite Member
               </Button>
-            </DialogTrigger>
+            } />
             <DialogContent className="rounded-none border-2 border-[var(--ink)] shadow-[8px_8px_0px_var(--ink)] bg-[var(--paper)]">
               <CornerMarks />
               <DialogHeader>
@@ -158,7 +158,7 @@ export function WorkspaceMembersTable() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold uppercase tracking-wider font-data">Role</label>
-                  <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <Select value={inviteRole} onValueChange={(val: any) => setInviteRole(val)}>
                     <SelectTrigger className="rounded-none border-2 border-[var(--ink)]">
                       <SelectValue />
                     </SelectTrigger>
@@ -216,7 +216,7 @@ export function WorkspaceMembersTable() {
                     {isAdmin && m.role !== 'OWNER' ? (
                       <Select
                         value={m.role}
-                        onValueChange={(val: string) => handleRoleChange(m.user.id, val)}
+                        onValueChange={(val: any) => handleRoleChange(m.user.id, val)}
                       >
                         <SelectTrigger className="h-8 w-[120px] text-xs rounded-none border-[var(--line)]">
                           <SelectValue />

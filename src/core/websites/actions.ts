@@ -8,7 +8,7 @@ import { createWebsiteSchema, updateWebsiteSchema } from "./schemas";
 import { Prisma } from "@prisma/client";
 import { templateDataSchema } from "@/core/templates/schemas";
 import { deepCloneAndRemapIds, remapNavigationItems } from "@/core/templates/utils";
-import { getRemainingQuota } from "@/core/billing/entitlements";
+import { getRemainingQuota, hasTemplateAccess } from "@/core/billing/entitlements";
 import { dispatchNotification } from "@/core/notifications/dispatcher";
 import { NotificationTypes } from "@/core/notifications/types";
 
@@ -150,6 +150,11 @@ export async function createWebsite(data: { name: string; domain?: string; slug?
       });
 
       if (!template) throw new Error("Template not found");
+
+      const hasAccess = await hasTemplateAccess(workspace.id, (template as any).requiredTier);
+      if (!hasAccess) {
+        throw new Error(`This template requires the ${(template as any).requiredTier} plan or higher.`);
+      }
 
       // Validate the template payload matches our expected blueprint format
       const templateData = templateDataSchema.parse(template.defaultTree || {});

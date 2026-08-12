@@ -57,7 +57,7 @@ export function AdminTicketActions({ ticket }: { ticket: any }) {
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-2">
             <label className="text-sm font-medium">Status</label>
-            <Select defaultValue={ticket.status} onValueChange={handleStatusChange}>
+            <Select defaultValue={ticket.status} onValueChange={(val: any) => handleStatusChange(val)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="OPEN">Open</SelectItem>
@@ -69,7 +69,7 @@ export function AdminTicketActions({ ticket }: { ticket: any }) {
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium">Priority</label>
-            <Select defaultValue={ticket.priority} onValueChange={handlePriorityChange}>
+            <Select defaultValue={ticket.priority} onValueChange={(val: any) => handlePriorityChange(val)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="LOW">Low</SelectItem>

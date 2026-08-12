@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Heart, Play, Download, Share } from 'lucide-react';
 
 import { useToast } from '@/shared/hooks/use-toast';
@@ -14,17 +15,16 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { CreateWebsiteModal } from '@/core/websites/components/CreateWebsiteModal';
 import { CornerMarks } from '@/shared/ui/blueprint';
-
 type Template = {
   id: string;
   name: string;
-  isPremium: boolean;
+  requiredTier: string;
   category: { name: string };
   industry: { name: string };
   defaultTree?: any;
 };
 
-export function TemplateCard({ template }: { template: Template }) {
+export function TemplateCard({ template, userTier }: { template: Template; userTier: string }) {
   const { toast } = useToast();
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -34,6 +34,9 @@ export function TemplateCard({ template }: { template: Template }) {
     thumbnail:
       'https://images.unsplash.com/photo-1707343843437-caacff5cfa74?q=80&w=600&auto=format&fit=crop',
   };
+
+  const tiers = ['FREE', 'STARTER', 'PRO', 'BUSINESS', 'ENTERPRISE'];
+  const isLocked = tiers.indexOf(template.requiredTier) > tiers.indexOf(userTier);
 
   useEffect(() => {
     const favs = JSON.parse(localStorage.getItem('favorite_templates') || '[]');
@@ -92,16 +95,16 @@ export function TemplateCard({ template }: { template: Template }) {
         />
 
         <div className="absolute top-2 right-2 flex gap-2">
-          {template.isPremium && (
+          {template.requiredTier !== 'FREE' && (
             <Badge
-              className="font-data rounded-none border-2"
+              className="font-data flex items-center gap-1 rounded-none border-2"
               style={{
                 borderColor: 'var(--ink)',
                 backgroundColor: 'var(--amber)',
                 color: 'var(--ink)',
               }}
             >
-              PRO
+              {isLocked ? '🔒' : ''} {template.requiredTier}
             </Badge>
           )}
           <Button
@@ -143,13 +146,16 @@ export function TemplateCard({ template }: { template: Template }) {
           <Button
             size="sm"
             className="rounded-none border-2"
+            asChild
             style={{
               borderColor: 'var(--ink)',
               backgroundColor: 'var(--paper)',
               color: 'var(--ink)',
             }}
           >
-            <Play className="mr-2 h-4 w-4" /> Preview
+            <Link href={`/dashboard/templates/${template.id}/preview`}>
+              <Play className="mr-2 h-4 w-4" /> Preview
+            </Link>
           </Button>
         </div>
       </div>
@@ -167,14 +173,28 @@ export function TemplateCard({ template }: { template: Template }) {
       </div>
 
       <div className="flex gap-2 p-4 pt-4">
-        <CreateWebsiteModal templateId={template.id}>
+        {isLocked ? (
           <Button
+            asChild
             className="flex-1 rounded-none border-2"
-            style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--signal)', color: '#fff' }}
+            style={{
+              borderColor: 'var(--ink)',
+              backgroundColor: 'var(--amber)',
+              color: 'var(--ink)',
+            }}
           >
-            <Download className="mr-2 h-4 w-4" /> Use Template
+            <Link href="/dashboard/settings/workspace">Upgrade to {template.requiredTier}</Link>
           </Button>
-        </CreateWebsiteModal>
+        ) : (
+          <CreateWebsiteModal templateId={template.id}>
+            <Button
+              className="flex-1 rounded-none border-2"
+              style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--signal)', color: '#fff' }}
+            >
+              <Download className="mr-2 h-4 w-4" /> Use Template
+            </Button>
+          </CreateWebsiteModal>
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger

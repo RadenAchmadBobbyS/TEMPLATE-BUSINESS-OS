@@ -9,15 +9,14 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-[var(--signal)] text-white hover:-translate-y-0.5 shadow-[2px_2px_0px_var(--ink)] border-2 border-[var(--ink)]',
-        outline:
-          'border-2 border-[var(--ink)] bg-transparent hover:bg-black/5 text-[var(--ink)]',
+        default:
+          'bg-[var(--signal)] text-white hover:-translate-y-0.5 shadow-[2px_2px_0px_var(--ink)] border-2 border-[var(--ink)]',
+        outline: 'border-2 border-[var(--ink)] bg-transparent hover:bg-black/5 text-[var(--ink)]',
         secondary:
           'bg-[var(--paper)] border-2 border-[var(--ink)] text-[var(--ink)] hover:bg-black/5',
-        ghost:
-          'hover:bg-black/5 text-[var(--ink)] hover:text-[var(--ink)]',
+        ghost: 'hover:bg-black/5 text-[var(--ink)] hover:text-[var(--ink)]',
         destructive:
-          'bg-destructive/10 text-destructive border-2 border-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20',
+          'bg-destructive/10 text-white border-2 border-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20',
         link: 'text-[var(--signal)] underline-offset-4 hover:underline',
       },
 
@@ -36,8 +35,7 @@ const buttonVariants = cva(
         'icon-xs':
           "size-6 rounded-none in-data-[slot=button-group]:rounded-none [&_svg:not([class*='size-'])]:size-3",
 
-        'icon-sm':
-          'size-7 rounded-none in-data-[slot=button-group]:rounded-none',
+        'icon-sm': 'size-7 rounded-none in-data-[slot=button-group]:rounded-none',
 
         'icon-lg': 'size-9',
       },

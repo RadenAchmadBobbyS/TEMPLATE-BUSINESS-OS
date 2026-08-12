@@ -78,22 +78,22 @@ export function UserNav() {
         align="end"
         style={{ borderColor: 'var(--ink)', boxShadow: '4px 4px 0px var(--ink)' }}
       >
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p
-              className="text-sm leading-none font-medium font-display" style={{ color: 'var(--ink)' }}
-            >
-              {session.user.name}
-            </p>
-            <p
-              className="text-xs leading-none font-data" style={{ color: 'var(--slate)' }}
-            >
-              {session.user.email}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator style={{ backgroundColor: 'var(--line)' }} />
         <DropdownMenuGroup>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p
+                className="text-sm leading-none font-medium font-display" style={{ color: 'var(--ink)' }}
+              >
+                {session.user.name}
+              </p>
+              <p
+                className="text-xs leading-none font-data" style={{ color: 'var(--slate)' }}
+              >
+                {session.user.email}
+              </p>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator style={{ backgroundColor: 'var(--line)' }} />
           <DropdownMenuItem
             className="rounded-none focus:bg-[rgba(36,81,255,0.08)] cursor-pointer"
             render={<Link href="/dashboard/settings/profile" />}
@@ -108,15 +108,15 @@ export function UserNav() {
             <Settings className="mr-2 h-4 w-4" style={{ color: 'var(--signal)' }} />
             <span>Settings</span>
           </DropdownMenuItem>
+          <DropdownMenuSeparator style={{ backgroundColor: 'var(--line)' }} />
+          <DropdownMenuItem
+            className="text-destructive focus:bg-destructive/10 focus:text-destructive rounded-none cursor-pointer"
+            onClick={handleSignOut}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            <span>Log out</span>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
-        <DropdownMenuSeparator style={{ backgroundColor: 'var(--line)' }} />
-        <DropdownMenuItem
-          className="text-destructive focus:bg-destructive/10 focus:text-destructive rounded-none cursor-pointer"
-          onClick={handleSignOut}
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

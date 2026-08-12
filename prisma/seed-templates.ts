@@ -154,7 +154,7 @@ async function main() {
           categoryId: tpl.categoryId,
           industryId: tpl.industryId,
           defaultTree: tpl.defaultTree,
-          isPremium: false
+          requiredTier: "FREE"
         }
       });
       console.log(`Created template: ${tpl.name}`);

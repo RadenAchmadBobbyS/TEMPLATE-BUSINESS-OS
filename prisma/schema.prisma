@@ -1,0 +1,793 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  BANNED
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  VIEWER
+}
+
+enum TicketCategory {
+  BUG_REPORT
+  FEATURE_REQUEST
+  BILLING
+  GENERAL
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CmsEntryStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+}
+
+enum SubscriptionTier {
+  FREE
+  STARTER
+  PRO
+  BUSINESS
+  ENTERPRISE
+}
+
+enum BillingCycle {
+  MONTHLY
+  ANNUALLY
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  PAUSED
+  CANCELED
+  EXPIRED
+  UNPAID
+}
+
+enum EventStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ==========================================
+// 1. Better Auth (Identity)
+// ==========================================
+
+model User {
+  id            String     @id @default(uuid()) @db.Uuid
+  name          String
+  email         String     @unique
+  emailVerified Boolean    @default(false)
+  image         String?
+  status        UserStatus @default(ACTIVE)
+  isSuperAdmin  Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  deletedAt     DateTime?
+
+  sessions      Session[]
+  accounts      Account[]
+  roles                  UserRole[]
+  notifications          Notification[]
+  notificationPreference NotificationPreference?
+  auditLogs              AuditLog[]     @relation("UserAudits")
+  assignedTickets        Ticket[]       @relation("UserAssignedTickets")
+  ticketReplies TicketReply[]  @relation("UserReplies")
+
+  @@index([deletedAt])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  impersonatedBy String? @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @db.Uuid
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ==========================================
+// 2. Core Administration
+// ==========================================
+
+model AdminUser {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tickets       Ticket[]
+  ticketReplies TicketReply[] @relation("AdminReplies")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String   @unique
+  value       String
+  description String?
+  isPublic    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+}
+
+// ==========================================
+// 3. Multi-Tenancy
+// ==========================================
+
+model Workspace {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String?   @unique
+  image      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  isArchived Boolean   @default(false)
+
+  members      UserRole[]
+  invitations  WorkspaceInvitation[]
+  websites     Website[]
+  subscription Subscription?
+  auditLogs    AuditLog[]
+  tickets      Ticket[]
+  assets       Asset[]
+  notifications Notification[]
+
+  @@index([deletedAt])
+}
+
+// Permission Table (3NF Mapping)
+model UserRole {
+  id          String @id @default(uuid()) @db.Uuid
+  userId      String @db.Uuid
+  workspaceId String @db.Uuid
+  role        Role   @default(VIEWER)
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model WorkspaceInvitation {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @db.Uuid
+  email       String
+  role        Role
+  token       String   @unique
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([email])
+}
+
+// ==========================================
+// 4. Builder & Publishing
+// ==========================================
+
+model Website {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @db.Uuid
+  name        String
+  slug        String    @unique
+  domain      String?
+  description String?
+  status      String    @default("DRAFT") // DRAFT, PUBLISHED
+  settings    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pages          Page[]
+  cmsModels      CmsModel[]
+  theme          Theme?
+  domains        Domain[]
+  redirects      Redirect[]
+  deployments    Deployment[]
+  forms          Form[]
+  visitors       AnalyticsVisitor[]
+  sessions       AnalyticsSession[]
+  events         AnalyticsEvent[]
+  goals          AnalyticsGoal[]
+  funnels        AnalyticsFunnel[]
+
+  @@index([workspaceId, deletedAt])
+}
+
+model Domain {
+  id         String   @id @default(uuid()) @db.Uuid
+  websiteId  String   @db.Uuid
+  hostname   String   @unique
+  isCustom          Boolean  @default(true)
+  isVerified        Boolean  @default(false)
+  verificationToken String?
+  isPrimary         Boolean  @default(false)
+  sslStatus         String   @default("PENDING") // PENDING, ACTIVE, FAILED
+  createdAt         DateTime @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId])
+}
+
+model Redirect {
+  id          String   @id @default(uuid()) @db.Uuid
+  websiteId   String   @db.Uuid
+  source      String
+  destination String
+  permanent   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, source])
+}
+
+model Deployment {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  version   Int      @default(1)
+  status    String   // SUCCESS, FAILED, ROLLBACK
+  snapshot  Json
+  message   String?
+  duration  Int // in ms
+  createdAt DateTime @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, createdAt])
+}
+
+model Page {
+  id                 String    @id @default(uuid()) @db.Uuid
+  websiteId          String    @db.Uuid
+  slug               String
+  title              String
+  isPublished        Boolean   @default(false)
+  publishedVersionId String?   @db.Uuid
+  parentId           String?   @db.Uuid
+  order              Int       @default(0)
+  settings           Json?
+  seoMetadata        Json?     // Meta, OpenGraph, Canonical, Schema
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+
+  website   Website         @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  parent    Page?           @relation("PageHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Page[]          @relation("PageHierarchy")
+  versions  PageVersion[]
+  analytics PageAnalytics[]
+
+  @@unique([websiteId, slug])
+  @@index([websiteId, deletedAt])
+  @@index([parentId])
+}
+
+model PageVersion {
+  id            String   @id @default(uuid()) @db.Uuid
+  pageId        String   @db.Uuid
+  versionNumber Int
+  nodeTree      Json // GIN Index will be applied manually via raw SQL
+  createdAt     DateTime @default(now())
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, versionNumber])
+}
+
+// ==========================================
+// 5. CMS & Media
+// ==========================================
+
+model CmsModel {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  name      String
+  schema    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website    @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  entries CmsEntry[]
+
+  @@unique([websiteId, name])
+}
+
+model CmsEntry {
+  id        String         @id @default(uuid()) @db.Uuid
+  modelId   String         @db.Uuid
+  status    CmsEntryStatus @default(DRAFT)
+  data      Json // GIN Index will be applied manually via raw SQL
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  model CmsModel @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId, status])
+}
+
+model Folder {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @db.Uuid
+  name        String
+  parentId    String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  assets Asset[]
+}
+
+model Asset {
+  id          String    @id @default(uuid()) @db.Uuid
+  workspaceId String    @db.Uuid
+  folderId    String?   @db.Uuid
+  websiteId   String?   @db.Uuid // Optional, for assets tied specifically to a site
+  name        String?
+  url         String
+  type        AssetType
+  sizeBytes   Int
+  s3Key       String    @unique
+  fileHash    String
+  isFavorite  Boolean   @default(false)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tags      AssetTag[]
+
+  @@index([workspaceId, type])
+  @@index([fileHash])
+}
+
+model AssetTag {
+  id      String @id @default(uuid()) @db.Uuid
+  assetId String @db.Uuid
+  name    String
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+}
+
+// ==========================================
+// 6. Ecosystem & Theming
+// ==========================================
+
+model Theme {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @unique @db.Uuid
+  variables Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  templates Template[]
+}
+
+model Industry {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique
+
+  templates Template[]
+}
+
+model Template {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  categoryId  String   @db.Uuid
+  industryId  String   @db.Uuid
+  defaultTree Json
+  isPremium   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  industry Industry @relation(fields: [industryId], references: [id], onDelete: Restrict)
+
+  @@index([industryId, categoryId])
+}
+
+// ==========================================
+// 7. Support Center (Ticketing)
+// ==========================================
+
+model Ticket {
+  id              String         @id @default(uuid()) @db.Uuid
+  workspaceId     String         @db.Uuid
+  assignedAdminId String?        @db.Uuid
+  assignedUserId  String?        @db.Uuid
+  subject         String
+  category        TicketCategory
+  status          TicketStatus   @default(OPEN)
+  priority        TicketPriority @default(MEDIUM)
+  slaBreachAt     DateTime?
+  createdAt       DateTime       @default(now())
+  resolvedAt      DateTime?
+
+  workspace     Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignedAdmin AdminUser?    @relation(fields: [assignedAdminId], references: [id], onDelete: SetNull)
+  assignedUser  User?         @relation("UserAssignedTickets", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  replies       TicketReply[]
+
+  @@index([workspaceId, status])
+  @@index([slaBreachAt])
+}
+
+model TicketReply {
+  id             String   @id @default(uuid()) @db.Uuid
+  ticketId       String   @db.Uuid
+  authorUserId   String?  @db.Uuid
+  authorAdminId  String?  @db.Uuid
+  isInternalNote Boolean  @default(false)
+  messageBody    String
+  createdAt      DateTime @default(now())
+
+  ticket      Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorUser  User?      @relation("UserReplies", fields: [authorUserId], references: [id], onDelete: SetNull)
+  authorAdmin AdminUser? @relation("AdminReplies", fields: [authorAdminId], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+}
+
+// ==========================================
+// 8. Billing & Subscription
+// ==========================================
+
+model Subscription {
+  id               String             @id @default(uuid()) @db.Uuid
+  workspaceId      String             @unique @db.Uuid
+  gatewaySubId     String?            @unique
+  gateway          String             @default("STRIPE") // STRIPE, MIDTRANS, XENDIT
+  planTier         SubscriptionTier   @default(FREE)
+  billingCycle     BillingCycle       @default(MONTHLY)
+  status           SubscriptionStatus @default(TRIALING)
+  cancelAtPeriodEnd Boolean           @default(false)
+  currentPeriodEnd DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invoices  Invoice[]
+
+  @@index([status])
+}
+
+model Invoice {
+  id               String   @id @default(uuid()) @db.Uuid
+  subscriptionId   String   @db.Uuid
+  gatewayInvoiceId String?  @unique
+  amount           Int      // in smallest currency unit (cents, or IDR actual)
+  currency         String   @default("USD")
+  status           String   // PAID, OPEN, VOID, FAILED, REFUNDED
+  pdfUrl           String?
+  createdAt        DateTime @default(now())
+
+  subscription Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([subscriptionId])
+}
+
+model Transaction {
+  id          String   @id @default(uuid()) @db.Uuid
+  invoiceId   String   @db.Uuid
+  gateway     String   // STRIPE, MIDTRANS, XENDIT
+  gatewayTxId String   @unique
+  amount      Int
+  currency    String
+  status      String   // SUCCESS, FAILED, REFUNDED, PENDING
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, status])
+}
+
+// ==========================================
+// 9. High Velocity / Queue / Events 
+// ==========================================
+
+model PageAnalytics {
+  id         String   @id @default(uuid()) @db.Uuid
+  pageId     String   @db.Uuid
+  views      Int      @default(0)
+  visitors   Int      @default(0)
+  sessions   Int      @default(0)
+  bounceRate Float    @default(0)
+  countries  Json?    // e.g. {"US": 150, "ID": 80}
+  devices    Json?    // e.g. {"Desktop": 500, "Mobile": 200}
+  referrers  Json?    // e.g. {"google.com": 400, "direct": 100}
+  date       DateTime @db.Date
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  // BRIN Index will be applied manually via raw SQL for 'date'
+
+  @@unique([pageId, date])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  workspaceId String   @db.Uuid
+  userId      String?  @db.Uuid
+  action      String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User?     @relation("UserAudits", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+}
+
+model EventQueue {
+  id          String      @id @default(uuid()) @db.Uuid
+  eventType   String
+  payload     Json
+  status      EventStatus @default(PENDING)
+  attempts    Int         @default(0)
+  createdAt   DateTime    @default(now())
+  processedAt DateTime?
+
+  // Partial Index for fast queue consumption:
+  // CREATE INDEX idx_pending_events ON "EventQueue" (status) WHERE status = 'PENDING';
+  @@index([status])
+}
+
+model NotificationPreference {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @db.Uuid
+  security  Boolean  @default(true)
+  billing   Boolean  @default(true)
+  workspace Boolean  @default(true)
+  website   Boolean  @default(true)
+  system    Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preference")
+}
+
+model Notification {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @db.Uuid
+  workspaceId String?   @db.Uuid
+  title       String
+  message     String
+  type        String
+  metadata    Json?
+  actionUrl   String?
+  referenceId String?
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([workspaceId])
+}
+
+// ==========================================
+// 10. Forms & Submissions
+// ==========================================
+
+model Form {
+  id              String           @id @default(uuid()) @db.Uuid
+  websiteId       String           @db.Uuid
+  name            String
+  fields          Json             // Array of field configurations (type, label, required, options)
+  settings        Json             // successPage, notificationEmails, captchaEnabled
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  website         Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  submissions     FormSubmission[]
+
+  @@index([websiteId])
+}
+
+model FormSubmission {
+  id        String   @id @default(uuid()) @db.Uuid
+  formId    String   @db.Uuid
+  data      Json
+  createdAt DateTime @default(now())
+
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId, createdAt])
+}
+
+// ==========================================
+// 11. Analytics Engine
+// ==========================================
+
+model AnalyticsVisitor {
+  id          String   @id @default(uuid()) @db.Uuid
+  websiteId   String   @db.Uuid
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  website  Website            @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  sessions AnalyticsSession[]
+  events   AnalyticsEvent[]
+
+  @@index([websiteId])
+}
+
+model AnalyticsSession {
+  id             String   @id @default(uuid()) @db.Uuid
+  websiteId      String   @db.Uuid
+  visitorId      String   @db.Uuid
+  startedAt      DateTime @default(now())
+  lastActivityAt DateTime @default(now())
+  landingPage    String?
+  exitPage       String?
+  referrer       String?
+  device         String?
+  browser        String?
+  country        String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  utmTerm        String?
+  utmContent     String?
+
+  website Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  visitor AnalyticsVisitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  events  AnalyticsEvent[]
+
+  @@index([websiteId, startedAt])
+  @@index([visitorId])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  sessionId String   @db.Uuid
+  visitorId String   @db.Uuid
+  eventName String
+  path      String?
+  pageId    String?  @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  website Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  session AnalyticsSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  visitor AnalyticsVisitor @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId, eventName, createdAt])
+  @@index([sessionId])
+}
+
+model AnalyticsGoal {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  name      String
+  eventName String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, eventName])
+}
+
+model AnalyticsFunnel {
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  name      String
+  steps     Json     // Array of eventName or path conditions
+  createdAt DateTime @default(now())
+
+  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([websiteId])
+}
+
+// ==========================================
+// 12. Webhooks & Idempotency
+// ==========================================
+
+model WebhookEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  provider    String   // STRIPE, MIDTRANS, XENDIT
+  eventId     String   @unique
+  eventType   String
+  status      String   @default("PROCESSED") // PROCESSED, FAILED
+  createdAt   DateTime @default(now())
+
+  @@index([provider, eventId])
+}

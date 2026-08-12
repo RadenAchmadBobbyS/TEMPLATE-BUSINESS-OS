@@ -1,0 +1,59 @@
+name: Production CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: QA Engine Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Security Audit
+        run: npm audit --audit-level=high || true
+
+      - name: Run Unit & Integration Tests (Vitest)
+        run: npm run test
+
+      - name: Setup Playwright
+        run: npx playwright install --with-deps
+
+      - name: Run E2E & Accessibility Tests (Playwright)
+        run: npm run e2e
+
+  deploy:
+    name: Deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Build Docker Image
+        run: docker-compose -f docker-compose.prod.yml build
+
+      # In a real environment, you would push this image to a registry (AWS ECR, Docker Hub)
+      # and SSH into the production VPS to pull and restart containers.
+      - name: Simulate Production Rollout
+        run: |
+          echo "Connecting to Production Server..."
+          echo "Pulling latest container images..."
+          echo "Restarting Next.js Node cluster..."
+          echo "Deployment Successful! 🚀"

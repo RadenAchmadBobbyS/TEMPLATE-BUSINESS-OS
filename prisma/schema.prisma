@@ -464,6 +464,7 @@ model Industry {
 
 model Template {
   id           String           @id @default(uuid()) @db.Uuid
+  slug         String?          @unique
   name         String
   categoryId   String           @db.Uuid
   industryId   String           @db.Uuid

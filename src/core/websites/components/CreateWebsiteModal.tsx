@@ -33,9 +33,24 @@ export function CreateWebsiteModal({
 }) {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
   const { activeWorkspace } = useWorkspace();
+
+  const getErrorMessage = (error: unknown) => {
+    if (error instanceof Error && error.message) return error.message;
+    if (typeof error === 'string' && error.trim()) return error;
+    return 'Failed to create website. Please try again.';
+  };
+
+  const handleQuotaMessage = (message: string) => {
+    if (message.toLowerCase().includes('website limit reached')) {
+      return 'Website limit reached. Archived websites still count toward your plan limit.';
+    }
+
+    return message;
+  };
 
   const form = useForm<CreateWebsiteInput>({
     resolver: zodResolver(createWebsiteSchema),
@@ -48,6 +63,8 @@ export function CreateWebsiteModal({
 
   async function onSubmit(data: CreateWebsiteInput) {
     setIsLoading(true);
+    setFormError(null);
+
     try {
       const newWebsite = await createWebsite(data);
       toast({
@@ -58,10 +75,12 @@ export function CreateWebsiteModal({
       form.reset();
       router.push(`/dashboard/websites/${newWebsite.id}/pages`);
     } catch (error) {
+      const message = handleQuotaMessage(getErrorMessage(error));
+      setFormError(message);
       toast({
-        title: 'Error',
-        description: 'Failed to create website. Please try again.',
-        type: 'error',
+        title: 'Unable to create website',
+        description: message,
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -105,6 +124,15 @@ export function CreateWebsiteModal({
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {formError && (
+                  <div
+                    role="alert"
+                    className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                  >
+                    {formError}
+                  </div>
+                )}
+
                 <FormField
                   control={form.control}
                   name="name"

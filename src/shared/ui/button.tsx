@@ -62,14 +62,17 @@ function Button({
 }: ButtonProps & { style?: React.CSSProperties }) {
   const mergedStyle = { fontFamily: 'Inter, sans-serif', ...style };
 
-  if (asChild) {
-    const { children, ...rest } = props;
+  const isCustomRender = asChild || props.render !== undefined;
+
+  if (isCustomRender) {
+    const { children, render, ...rest } = props;
+    const renderElement = render || (React.isValidElement(children) ? children : undefined);
 
     return (
       <ButtonPrimitive
         className={cn(buttonVariants({ variant, size, className }))}
         nativeButton={false}
-        render={React.isValidElement(children) ? children : undefined}
+        render={renderElement}
         style={mergedStyle}
         {...rest}
       />

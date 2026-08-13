@@ -60,7 +60,7 @@ export function WorkspaceSwitcher() {
             <span className="flex-1 truncate">
               {activeWorkspace ? activeWorkspace.name : 'Select Workspace'}
             </span>
-            <span className="font-data inline-flex h-5 items-center justify-center rounded-none bg-[var(--ink)] px-1.5 text-[10px] text-[var(--paper)]">
+            <span className="font-data bg-ink text-paper inline-flex h-5 items-center justify-center rounded-none px-1.5 text-[10px]">
               {workspaces.length}
             </span>
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
@@ -68,17 +68,17 @@ export function WorkspaceSwitcher() {
         }
       />
       <DropdownMenuContent
-        className="w-56 rounded-none border-2 border-[var(--ink)] bg-[var(--paper)] shadow-[4px_4px_0px_var(--ink)]"
+        className="border-ink bg-paper w-56 rounded-none border-2 shadow-[4px_4px_0px_var(--ink)]"
         align="start"
       >
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="font-data text-[10px] tracking-wider text-[var(--slate)] uppercase">
+          <DropdownMenuLabel className="font-data text-slate text-[10px] tracking-wider uppercase">
             Workspaces
           </DropdownMenuLabel>
           {workspaces.map((ws) => (
             <DropdownMenuItem
               key={ws.id}
-              onSelect={() => handleSwitch(ws.id)}
+              onClick={() => handleSwitch(ws.id)}
               className="flex cursor-pointer items-center justify-between rounded-none font-medium focus:bg-black/5"
             >
               <span className="truncate">{ws.name}</span>
@@ -88,7 +88,7 @@ export function WorkspaceSwitcher() {
             </DropdownMenuItem>
           ))}
           {workspaces.length === 0 && (
-            <div className="px-2 py-2 text-sm text-[var(--slate)] italic">No workspaces found</div>
+            <div className="text-slate px-2 py-2 text-sm italic">No workspaces found</div>
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

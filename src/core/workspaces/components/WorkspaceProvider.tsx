@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { createContext, useContext, useState, ReactNode } from "react";
-import type { Workspace, Role } from "@prisma/client";
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import type { Workspace, Role } from '@prisma/client';
 
 export type WorkspaceContextType = {
   activeWorkspace: Workspace | null;
@@ -26,11 +26,22 @@ export function WorkspaceProvider({
   initialRole: Role | null;
   workspaces: Array<{ id: string; name: string; role: Role }>;
 }) {
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(initialWorkspace);
+  const [role, setRole] = useState<Role | null>(initialRole);
+
+  useEffect(() => {
+    setActiveWorkspace(initialWorkspace);
+  }, [initialWorkspace]);
+
+  useEffect(() => {
+    setRole(initialRole);
+  }, [initialRole]);
+
   return (
     <WorkspaceContext.Provider
       value={{
-        activeWorkspace: initialWorkspace,
-        role: initialRole,
+        activeWorkspace,
+        role,
         workspaces,
       }}
     >
@@ -42,7 +53,7 @@ export function WorkspaceProvider({
 export function useWorkspace() {
   const context = useContext(WorkspaceContext);
   if (context === undefined) {
-    throw new Error("useWorkspace must be used within a WorkspaceProvider");
+    throw new Error('useWorkspace must be used within a WorkspaceProvider');
   }
   return context;
 }

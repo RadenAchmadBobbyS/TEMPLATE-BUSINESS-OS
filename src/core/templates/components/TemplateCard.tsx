@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, Play, Download, Share } from 'lucide-react';
+import { Heart, Play, Download, Share, Loader2 } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 import { useToast } from '@/shared/hooks/use-toast';
 import { Button } from '@/shared/ui/button';
@@ -15,8 +16,10 @@ import {
 } from '@/shared/ui/dropdown-menu';
 import { CreateWebsiteModal } from '@/core/websites/components/CreateWebsiteModal';
 import { CornerMarks } from '@/shared/ui/blueprint';
+import { applyTemplateToWebsite } from '@/core/websites/actions';
 type Template = {
   id: string;
+  slug?: string | null;
   name: string;
   requiredTier: string;
   category: { name: string };
@@ -27,6 +30,10 @@ type Template = {
 export function TemplateCard({ template, userTier }: { template: Template; userTier: string }) {
   const { toast } = useToast();
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const applyTo = searchParams.get('applyTo');
 
   const metadata = template.defaultTree?.metadata || {
     version: 'v1.0.0',
@@ -153,7 +160,7 @@ export function TemplateCard({ template, userTier }: { template: Template; userT
               color: 'var(--ink)',
             }}
           >
-            <Link href={`/dashboard/templates/${template.id}/preview`}>
+            <Link href={`/dashboard/templates/${template.slug || template.id}/preview`}>
               <Play className="mr-2 h-4 w-4" /> Preview
             </Link>
           </Button>
@@ -184,6 +191,33 @@ export function TemplateCard({ template, userTier }: { template: Template; userT
             }}
           >
             <Link href="/dashboard/settings/workspace">Upgrade to {template.requiredTier}</Link>
+          </Button>
+        ) : applyTo ? (
+          <Button
+            className="flex-1 rounded-none border-2"
+            style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--signal)', color: '#fff' }}
+            disabled={isApplying}
+            onClick={async () => {
+              setIsApplying(true);
+              try {
+                await applyTemplateToWebsite(applyTo, template.id);
+                toast({
+                  title: 'Template Applied',
+                  description: 'Template has been successfully applied to your website.',
+                });
+                router.push(`/dashboard/websites/${applyTo}/pages`);
+              } catch (err: any) {
+                toast({ title: 'Error', description: err.message, variant: 'destructive' });
+                setIsApplying(false);
+              }
+            }}
+          >
+            {isApplying ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            Apply to Website
           </Button>
         ) : (
           <CreateWebsiteModal templateId={template.id}>

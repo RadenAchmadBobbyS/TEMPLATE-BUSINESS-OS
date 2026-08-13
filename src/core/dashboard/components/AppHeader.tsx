@@ -16,21 +16,70 @@ import { ThemeToggle } from './ThemeToggle';
 import { UserNav } from './UserNav';
 import { NotificationNav } from '@/core/notifications/components/NotificationNav';
 import { usePathname } from 'next/navigation';
+import { resolveBreadcrumbLabel } from '@/core/dashboard/actions';
 
-export function AppHeader() {
+function formatSegmentLabel(segment: string) {
+  const decoded = decodeURIComponent(segment);
+  return decoded
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+export function AppHeader({ segmentLabelMap }: { segmentLabelMap?: Record<string, string> }) {
   const pathname = usePathname();
+  const [dynamicLabels, setDynamicLabels] = React.useState<Record<string, string>>({});
+  const fetchedSegmentsRef = React.useRef<Set<string>>(new Set());
 
   const segments = pathname.split('/').filter(Boolean);
+
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const fetchLabels = async () => {
+      const newLabels: Record<string, string> = {};
+      let hasChanges = false;
+
+      for (const segment of segments) {
+        if (segmentLabelMap?.[segment] || fetchedSegmentsRef.current.has(segment)) continue;
+
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          segment,
+        );
+        if (isUuid) {
+          fetchedSegmentsRef.current.add(segment);
+          const label = await resolveBreadcrumbLabel(segment);
+          if (label) {
+            newLabels[segment] = label;
+            hasChanges = true;
+          }
+        }
+      }
+
+      if (hasChanges && isMounted) {
+        setDynamicLabels((prev) => ({ ...prev, ...newLabels }));
+      }
+    };
+
+    fetchLabels();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [pathname, segmentLabelMap, segments]);
+
   const breadcrumbs = segments.map((segment, index) => {
     const url = `/${segments.slice(0, index + 1).join('/')}`;
     const isLast = index === segments.length - 1;
-    const title = segment.charAt(0).toUpperCase() + segment.slice(1);
+    const title =
+      segmentLabelMap?.[segment] || dynamicLabels[segment] || formatSegmentLabel(segment);
     return { title, url, isLast };
   });
 
   return (
     <header
-      className="sticky top-0 z-50 flex h-16 shrink-0 items-center gap-2 border-b px-4 w-full"
+      className="sticky top-0 z-50 flex h-16 w-full shrink-0 items-center gap-2 border-b px-4"
       style={{ backgroundColor: 'var(--paper)', borderColor: 'var(--line)' }}
     >
       <div className="flex flex-1 items-center gap-2 px-3">

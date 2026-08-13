@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Globe, Plus } from 'lucide-react';
 import { EmptyState } from '@/shared/ui/empty-state';
 import { WebsiteCard } from './WebsiteCard';
@@ -31,15 +32,16 @@ export function WebsiteList({
           title="No websites found"
           description="Try adjusting your filters, or create your first website to get started."
           action={
-            <CreateWebsiteModal>
-              <Button
-                className={btnPrimary}
-                style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
-              >
+            <Button
+              asChild
+              className={btnPrimary}
+              style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+            >
+              <Link href="/dashboard/templates">
                 <Plus className="mr-2 h-4 w-4" />
                 New Website
-              </Button>
-            </CreateWebsiteModal>
+              </Link>
+            </Button>
           }
         />
       </FadeIn>

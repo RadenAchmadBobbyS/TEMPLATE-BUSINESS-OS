@@ -5,7 +5,6 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getUserWebsites, GetWebsitesOptions } from '@/core/websites/actions';
 import { getActiveWorkspace } from '@/core/workspaces/server-context';
 import { WebsiteList } from '@/core/websites/components/WebsiteList';
-import { CreateWebsiteModal } from '@/core/websites/components/CreateWebsiteModal';
 import { WebsiteToolbar } from '@/core/websites/components/WebsiteToolbar';
 import { WebsiteSkeleton } from '@/core/websites/components/WebsiteSkeleton';
 
@@ -110,15 +109,16 @@ export default async function WebsitesPage({
           description="Manage your deployed sites, custom domains, and global settings."
           actions={
             active ? (
-              <CreateWebsiteModal>
-                <Button
-                  className={btnPrimary}
-                  style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
-                >
+              <Button
+                asChild
+                className={btnPrimary}
+                style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+              >
+                <Link href="/dashboard/templates">
                   <Plus className="mr-2 h-4 w-4" />
                   New Website
-                </Button>
-              </CreateWebsiteModal>
+                </Link>
+              </Button>
             ) : (
               <Button disabled className={btnPrimary}>
                 <Plus className="mr-2 h-4 w-4" />

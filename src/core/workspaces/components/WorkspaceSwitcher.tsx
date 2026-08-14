@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Globe, Plus, Settings, Archive } from 'lucide-react';
+import { Check, ChevronsUpDown, Globe, Plus, Settings, Archive, ShieldAlert } from 'lucide-react';
 import { useWorkspace } from './WorkspaceProvider';
 import { setActiveWorkspace } from '../actions';
 import { useRouter } from 'next/navigation';
@@ -15,18 +15,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/dropdown-menu';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/shared/ui/tooltip';
+
+const DANGER = '#dc2626';
 
 export function WorkspaceSwitcher() {
   const { activeWorkspace, workspaces, role, subscriptionTier } = useWorkspace();
   const [isSwitching, setIsSwitching] = useState(false);
   const router = useRouter();
 
+  const isFree = !subscriptionTier || subscriptionTier === 'FREE';
+  const ownedCount = workspaces.filter((w) => w.role === 'OWNER').length;
+  const quotaExceeded = isFree && ownedCount >= 1;
+
   const handleSwitch = async (id: string) => {
     if (id === activeWorkspace?.id) return;
     setIsSwitching(true);
     try {
       await setActiveWorkspace(id);
-      router.refresh(); // Or router.push('/dashboard') depending on desired behavior
+      router.refresh();
     } catch (e) {
       console.error(e);
     } finally {
@@ -57,7 +64,7 @@ export function WorkspaceSwitcher() {
             >
               <Globe className="h-3.5 w-3.5" strokeWidth={2.5} />
             </div>
-            <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+            <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5">
               <span className="truncate leading-none">
                 {activeWorkspace ? activeWorkspace.name : 'Select Workspace'}
               </span>
@@ -117,17 +124,84 @@ export function WorkspaceSwitcher() {
             </Link>
           }
         />
-        <DropdownMenuItem
-          render={
-            <Link
-              href="/dashboard/workspaces/new"
-              className="flex w-full cursor-pointer items-center rounded-none font-medium focus:bg-black/5"
-            >
+
+        {quotaExceeded ? (
+          <DropdownMenuItem
+            className="flex w-full cursor-not-allowed items-center justify-between rounded-none font-medium opacity-60 focus:bg-transparent"
+            onClick={(e) => e.preventDefault()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') e.preventDefault();
+            }}
+          >
+            <span className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Create Workspace
-            </Link>
-          }
-        />
+            </span>
+
+            {/* Tooltip anchored to the icon itself, not the whole row */}
+            <TooltipProvider delay={100}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span
+                      className="flex h-5 w-5 shrink-0 items-center justify-center"
+                      style={{ color: DANGER }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ShieldAlert className="h-4 w-4" strokeWidth={2.25} />
+                    </span>
+                  }
+                />
+                <TooltipContent
+                  side="right"
+                  align="center"
+                  sideOffset={14}
+                  accentColor={DANGER}
+                  className="max-w-xs p-0"
+                >
+                  <div
+                    className="font-data flex items-center gap-1.5 border-b-2 px-3 py-1.5 text-[10px] font-bold tracking-wider uppercase"
+                    style={{
+                      borderColor: DANGER,
+                      backgroundColor: `color-mix(in srgb, ${DANGER} 12%, var(--paper))`,
+                      color: DANGER,
+                    }}
+                  >
+                    <ShieldAlert className="h-3 w-3" />
+                    Quota Exceeded
+                  </div>
+                  <div className="space-y-2 p-3">
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--ink)' }}>
+                      Kamu sudah mencapai batas maksimum{' '}
+                      <span className="font-semibold">1 workspace</span> untuk paket FREE. Upgrade
+                      untuk membuat lebih banyak.
+                    </p>
+                    <Link
+                      href="/dashboard/billing"
+                      className="font-data inline-flex items-center gap-1 text-[10px] font-bold tracking-wider uppercase underline underline-offset-2 transition-colors hover:opacity-70"
+                      style={{ color: DANGER }}
+                    >
+                      View Subscription Plans
+                    </Link>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem
+            render={
+              <Link
+                href="/dashboard/workspaces/new"
+                className="flex w-full cursor-pointer items-center rounded-none font-medium focus:bg-black/5"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Workspace
+              </Link>
+            }
+          />
+        )}
+
         <DropdownMenuItem
           render={
             <Link

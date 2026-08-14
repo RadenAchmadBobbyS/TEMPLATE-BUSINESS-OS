@@ -20,14 +20,14 @@ export async function getWorkspacePlan(workspaceId: string): Promise<{
 
   if (subscription) {
     if (
-      subscription.status === 'ACTIVE' ||
+      (subscription.status === 'ACTIVE' && (!subscription.currentPeriodEnd || subscription.currentPeriodEnd > new Date())) ||
       subscription.status === 'TRIALING' ||
       (subscription.status === 'CANCELED' &&
         subscription.currentPeriodEnd &&
         subscription.currentPeriodEnd > new Date())
     ) {
       tier = subscription.planTier;
-    } else if (subscription.status === 'PAST_DUE') {
+    } else if (subscription.status === 'PAST_DUE' || (subscription.status === 'ACTIVE' && subscription.currentPeriodEnd && subscription.currentPeriodEnd < new Date())) {
       // Depending on business rules, PAST_DUE might restrict access or keep it active temporarily.
       // We'll restrict them to FREE limits or keep it active but warn.
       // For now, let's downgrade them logically to FREE until they pay.

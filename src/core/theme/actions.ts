@@ -13,7 +13,7 @@ export async function getWebsiteTheme(websiteId: string) {
   if (!session) throw new Error("Unauthorized");
 
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace, role } = active;
   checkWorkspacePermission(role, "EDITOR");
 
@@ -41,7 +41,7 @@ export async function updateWebsiteTheme(websiteId: string, data: ValidatedTheme
   if (!session) throw new Error("Unauthorized");
 
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace, role } = active;
   checkWorkspacePermission(role, "EDITOR");
 
@@ -73,7 +73,7 @@ export async function resetWebsiteTheme(websiteId: string) {
   if (!session) throw new Error("Unauthorized");
 
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace, role } = active;
   checkWorkspacePermission(role, "EDITOR");
 

@@ -2,6 +2,7 @@ import { SubscriptionTier } from "@prisma/client";
 import { PaymentProvider, CreateCheckoutSessionParams } from "./base";
 import { PLAN_LIMITS } from "../plans.config";
 import crypto from "crypto";
+import { prisma } from "@/shared/lib/prisma";
 
 export class MidtransProvider implements PaymentProvider {
   private getServerKey(): string {
@@ -80,17 +81,19 @@ export class MidtransProvider implements PaymentProvider {
   }
 
   async createCustomer(userId: string, email: string, name: string): Promise<string> {
-    return `midtrans_cust_${userId}`;
+    // Midtrans Snap handles customer details on checkout time
+    return userId; 
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {
-    const serverKey = this.getServerKey();
-    // Implementation for actual cancellation if using Midtrans subscription API
+    // Midtrans Snap is one-time. We just let the local DB handle cancelAtPeriodEnd.
+    console.log(`[Midtrans] cancelSubscription called for ${subscriptionId}. Note: Midtrans Snap is one-time.`);
   }
 
   async changeSubscription(subscriptionId: string, newTier: SubscriptionTier): Promise<void> {
-    const serverKey = this.getServerKey();
-    // Implementation for actual subscription change
+    // We don't natively upgrade Snap subscriptions in place.
+    // The user needs a new checkout session.
+    throw new Error("To change a Midtrans plan, please purchase a new subscription.");
   }
 
   verifyWebhookSignature(payload: string, signature: string, secret: string): boolean {

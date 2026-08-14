@@ -9,7 +9,7 @@ import { revalidatePath } from 'next/cache';
 
 export async function getPageVersion(pageId: string) {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace, role } = active;
 
   const isReadOnly = false;

@@ -103,8 +103,11 @@ export async function canCreateWorkspace() {
 export async function createWorkspace(data: any) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return { success: false, error: 'Unauthorized' };
-  
-  const parsed = createWorkspaceSchema.parse(data);
+  const parsedData = createWorkspaceSchema.safeParse(data);
+  if (!parsedData.success) {
+    return { success: false, error: parsedData.error.issues[0].message };
+  }
+  const parsed = parsedData.data;
   const slug = await getUniqueSlug(parsed.name);
 
   const quota = await canCreateWorkspace();
@@ -257,7 +260,7 @@ export async function setActiveWorkspace(workspaceId: string) {
 
 export async function getWorkspaceMembers() {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace, role } = active;
   if (!hasWorkspacePermission(role, 'EDITOR')) {
     return [];
@@ -368,7 +371,7 @@ export async function inviteMember(data: any) {
 
 export async function getWorkspaceInvitations() {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace, role } = active;
   if (!hasWorkspacePermission(role, 'ADMIN')) {
     return [];

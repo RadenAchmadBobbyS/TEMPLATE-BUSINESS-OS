@@ -101,8 +101,12 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
   const handleUpgrade = async (tier: SubscriptionTier) => {
     setLoadingTier(tier);
     try {
-      await changeSubscriptionTier(tier, gateway, currency);
-      toast({ title: "Plan updated successfully!", description: `Welcome to the ${tier} tier via ${gateway}.` });
+      const result = await changeSubscriptionTier(tier, gateway, currency);
+      if (result && result.url) {
+        window.location.href = result.url;
+      } else {
+        toast({ title: "Plan updated successfully!", description: `Welcome to the ${tier} tier via ${gateway}.` });
+      }
     } catch (error: any) {
       toast({ title: "Action failed", description: error.message, variant: "destructive" });
     } finally {
@@ -177,6 +181,8 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
               {subscription.status === 'ACTIVE' && <Badge className="bg-green-500/10 text-green-600 border-green-500/20">Active</Badge>}
               {subscription.status === 'TRIALING' && <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20">Trialing</Badge>}
               {subscription.status === 'CANCELED' && <Badge variant="destructive">Canceled</Badge>}
+              {subscription.status === 'EXPIRED' && <Badge variant="destructive">Expired</Badge>}
+              {subscription.status === 'PAST_DUE' && <Badge variant="destructive">Past Due</Badge>}
             </div>
             {subscription.gateway && (
               <p className="text-xs text-muted-foreground mt-2">Billed via {subscription.gateway}</p>
@@ -241,7 +247,7 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
         <h3 className="text-xl font-semibold mb-6">Upgrade your Workspace</h3>
         <div className="grid md:grid-cols-3 gap-6">
           {TIERS.map((tier) => {
-            const isCurrent = subscription.planTier === tier.id && subscription.status !== 'CANCELED';
+            const isCurrent = subscription.planTier === tier.id && subscription.status !== 'CANCELED' && subscription.status !== 'EXPIRED';
             const isDowngrade = TIERS.findIndex(t => t.id === tier.id) < TIERS.findIndex(t => t.id === subscription.planTier);
 
             return (
@@ -317,19 +323,7 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
                       {invoice.status}
                     </Badge>
                     
-                    {invoice.status === 'PAID' && (
-                      <Button variant="outline" size="sm" onClick={() => handleRefund(invoice.id)} disabled={processingInvoiceId === invoice.id}>
-                        {processingInvoiceId === invoice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Reply className="h-4 w-4 mr-2" />}
-                        Refund
-                      </Button>
-                    )}
-                    
-                    {invoice.status === 'FAILED' && (
-                      <Button variant="default" size="sm" onClick={() => handleRetry(invoice.id)} disabled={processingInvoiceId === invoice.id}>
-                        {processingInvoiceId === invoice.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
-                        Retry
-                      </Button>
-                    )}
+                    {/* Features not supported by gateway: Refund and Retry */}
 
                     <Button variant="ghost" size="sm" asChild>
                       <a href={invoice.pdfUrl} target="_blank" rel="noopener noreferrer">

@@ -53,7 +53,7 @@ export async function getMyTickets() {
 
 export async function getTicket(ticketId: string) {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace } = active;
   
   const ticket = await prisma.ticket.findUnique({
@@ -76,7 +76,7 @@ export async function getTicket(ticketId: string) {
 
 export async function createTicket(data: any) {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) return { success: false, error: active.error };
+  if (!active.success) throw new Error(active.error);
   const { workspace } = active;
   const session = await auth.api.getSession({ headers: await headers() });
   const parsed = createTicketSchema.parse(data);

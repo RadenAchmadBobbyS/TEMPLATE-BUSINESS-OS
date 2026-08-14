@@ -100,7 +100,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton className="hover:bg-[rgba(20,23,31,0.04)] rounded-none" render={
-                <Link href="/dashboard" className="font-display" style={{ color: "var(--slate)" }}><LogOut className="rotate-180" /> <span>Exit Admin</span></Link>
+                <Link href="/dashboard"><LogOut className="rotate-180 text-[var(--slate)]" /> <span className="font-display text-[var(--slate)]">Exit Admin</span></Link>
               } />
             </SidebarMenuItem>
           </SidebarMenu>

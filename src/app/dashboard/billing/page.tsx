@@ -53,7 +53,7 @@ export default async function BillingPage() {
     );
   }
 
-  if (active.role === 'EDITOR') {
+  if (active.role !== 'OWNER') {
     return (
       <div className="mx-auto mt-20 max-w-lg px-4">
         <Card className="rounded-none border-2 border-red-600 shadow-[4px_4px_0px_theme(colors.red.600)] bg-[var(--paper)] relative">

@@ -24,9 +24,11 @@ async function getWorkspaceAccess(requiredRole: "OWNER" | "ADMIN" | "EDITOR" = "
 }
 
 export async function getSubscriptionData() {
-  const { ownerId } = await getWorkspaceAccess('OWNER');
+  const access = await getWorkspaceAccess('OWNER');
+  if ('error' in access) throw new Error(access.error as string);
+  const { ownerId } = access;
 
-  const subscription = await prisma.subscription.findUnique({
+  let subscription = await prisma.subscription.findUnique({
     where: { userId: ownerId },
     include: {
       invoices: {
@@ -34,6 +36,17 @@ export async function getSubscriptionData() {
       },
     },
   });
+
+  // Dynamically mark manual renewals as EXPIRED if currentPeriodEnd has passed
+  if (subscription && subscription.currentPeriodEnd) {
+    if (subscription.currentPeriodEnd < new Date() && (subscription.status === 'ACTIVE' || subscription.status === 'PAST_DUE')) {
+      subscription = await prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { status: 'EXPIRED' },
+        include: { invoices: { orderBy: { createdAt: 'desc' } } },
+      });
+    }
+  }
 
   // If no subscription exists, initialize a FREE tier.
   if (!subscription) {
@@ -50,7 +63,6 @@ export async function getSubscriptionData() {
 
   return subscription;
 }
-
 
 const TIER_RANK = {
   FREE: 0,
@@ -78,7 +90,9 @@ export async function changeSubscriptionTier(
   gateway: string = 'STRIPE',
   currency: string = 'USD',
 ) {
-  const { workspaceId, ownerId } = await getWorkspaceAccess('OWNER');
+  const access = await getWorkspaceAccess('OWNER');
+  if ('error' in access) throw new Error(access.error as string);
+  const { workspaceId, ownerId } = access;
 
   const currentSub = await prisma.subscription.findUnique({ where: { userId: ownerId } });
   if (!currentSub) throw new Error('Subscription not found');
@@ -124,7 +138,9 @@ export async function changeSubscriptionTier(
 }
 
 export async function cancelSubscription() {
-  const { ownerId } = await getWorkspaceAccess('OWNER');
+  const access = await getWorkspaceAccess('OWNER');
+  if ('error' in access) throw new Error(access.error as string);
+  const { ownerId } = access;
 
   const currentSub = await prisma.subscription.findUnique({ where: { userId: ownerId } });
   if (!currentSub) throw new Error('Subscription not found');
@@ -136,7 +152,15 @@ export async function cancelSubscription() {
 
   // Tell Provider
   if (currentSub.gatewaySubId) {
-    await stripeProvider.cancelSubscription(currentSub.gatewaySubId);
+    if (currentSub.gateway === 'STRIPE') {
+      await stripeProvider.cancelSubscription(currentSub.gatewaySubId);
+    } else if (currentSub.gateway === 'MIDTRANS') {
+      await midtransProvider.cancelSubscription(currentSub.gatewaySubId);
+    } else if (currentSub.gateway === 'XENDIT') {
+      await xenditProvider.cancelSubscription(currentSub.gatewaySubId);
+    } else {
+      console.warn(`[Billing] Unknown gateway ${currentSub.gateway} for sub ${currentSub.id}`);
+    }
   } else {
     // If it's a mock or free tier
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -155,77 +179,9 @@ export async function cancelSubscription() {
 }
 
 export async function retryFailedInvoice(invoiceId: string, gateway: string = 'STRIPE') {
-  const { ownerId } = await getWorkspaceAccess('OWNER');
-
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: { subscription: true },
-  });
-  if (!invoice) throw new Error('Invoice not found');
-  if (invoice.subscription.userId !== ownerId) throw new Error('Unauthorized');
-
-  // Record a mock transaction success for now
-  await prisma.transaction.create({
-    data: {
-      invoiceId: invoice.id,
-      gateway,
-      gatewayTxId: `mock_retry_${gateway.toLowerCase()}_tx_${Date.now()}`,
-      amount: invoice.amount,
-      currency: invoice.currency,
-      status: 'SUCCESS',
-    },
-  });
-
-  const updated = await prisma.invoice.update({
-    where: { id: invoiceId },
-    data: { status: 'PAID' },
-  });
-
-  // State Machine: Update sub from PAST_DUE -> ACTIVE
-  if (invoice.subscription.status === 'PAST_DUE') {
-    await prisma.subscription.update({
-      where: { id: invoice.subscriptionId },
-      data: { status: 'ACTIVE' },
-    });
-  }
-
-  revalidatePath('/dashboard/billing');
-  return updated;
+  throw new Error("Retrying invoices is not supported by your payment gateway. Please update your payment method or create a new subscription.");
 }
 
 export async function processRefund(invoiceId: string) {
-  const { ownerId } = await getWorkspaceAccess('OWNER');
-
-  const invoice = await prisma.invoice.findUnique({
-    where: { id: invoiceId },
-    include: {
-      transactions: { where: { status: 'SUCCESS' } },
-      subscription: true,
-    },
-  });
-  if (!invoice) throw new Error('Invoice not found');
-  if (invoice.subscription.userId !== ownerId) throw new Error('Unauthorized');
-
-  const tx = invoice.transactions[0];
-
-  if (tx) {
-    await prisma.transaction.create({
-      data: {
-        invoiceId: invoice.id,
-        gateway: tx.gateway,
-        gatewayTxId: `mock_refund_${tx.gateway.toLowerCase()}_tx_${Date.now()}`,
-        amount: invoice.amount,
-        currency: invoice.currency,
-        status: 'REFUNDED',
-      },
-    });
-  }
-
-  const updated = await prisma.invoice.update({
-    where: { id: invoiceId },
-    data: { status: 'REFUNDED' },
-  });
-
-  revalidatePath('/dashboard/billing');
-  return updated;
+  throw new Error("Refunding invoices is not supported directly from the dashboard. Please contact support.");
 }

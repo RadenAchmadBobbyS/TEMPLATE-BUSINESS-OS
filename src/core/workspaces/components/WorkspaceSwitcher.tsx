@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, ChevronsUpDown, Globe, Plus, Settings } from 'lucide-react';
+import { Check, ChevronsUpDown, Globe, Plus, Settings, Archive } from 'lucide-react';
 import { useWorkspace } from './WorkspaceProvider';
 import { setActiveWorkspace } from '../actions';
 import { useRouter } from 'next/navigation';
@@ -17,7 +17,7 @@ import {
 } from '@/shared/ui/dropdown-menu';
 
 export function WorkspaceSwitcher() {
-  const { activeWorkspace, workspaces } = useWorkspace();
+  const { activeWorkspace, workspaces, role, subscriptionTier } = useWorkspace();
   const [isSwitching, setIsSwitching] = useState(false);
   const router = useRouter();
 
@@ -57,12 +57,26 @@ export function WorkspaceSwitcher() {
             >
               <Globe className="h-3.5 w-3.5" strokeWidth={2.5} />
             </div>
-            <span className="flex-1 truncate">
-              {activeWorkspace ? activeWorkspace.name : 'Select Workspace'}
-            </span>
-            <span className="font-data bg-ink text-paper inline-flex h-5 items-center justify-center rounded-none px-1.5 text-[10px]">
-              {workspaces.length}
-            </span>
+            <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+              <span className="truncate leading-none">
+                {activeWorkspace ? activeWorkspace.name : 'Select Workspace'}
+              </span>
+              {activeWorkspace && (
+                <div className="flex items-center gap-1">
+                  <span className="font-data text-[8px] font-bold tracking-wider text-[var(--slate)] uppercase">
+                    {role}
+                  </span>
+                  {subscriptionTier && (
+                    <>
+                      <span className="text-[var(--slate)] opacity-50">&bull;</span>
+                      <span className="font-data text-[8px] font-bold tracking-wider text-[var(--signal)] uppercase">
+                        {subscriptionTier}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
           </button>
         }
@@ -111,6 +125,17 @@ export function WorkspaceSwitcher() {
             >
               <Plus className="mr-2 h-4 w-4" />
               Create Workspace
+            </Link>
+          }
+        />
+        <DropdownMenuItem
+          render={
+            <Link
+              href="/dashboard/workspaces/archived"
+              className="flex w-full cursor-pointer items-center rounded-none font-medium focus:bg-black/5"
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              Archived Workspaces
             </Link>
           }
         />

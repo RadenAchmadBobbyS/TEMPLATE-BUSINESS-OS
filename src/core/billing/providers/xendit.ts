@@ -24,7 +24,7 @@ export class XenditProvider implements PaymentProvider {
     const plan = PLAN_LIMITS[params.tier];
     if (!plan) throw new Error("Invalid tier config for Xendit");
 
-    const invoiceId = `inv-${params.workspaceId}-${Date.now()}`;
+    const invoiceId = `inv-${params.userId}-${Date.now()}`;
     
     // We assume IDR pricing
     const amount = params.tier === "FREE" ? 0 : 
@@ -70,8 +70,8 @@ export class XenditProvider implements PaymentProvider {
     return { url: data.invoice_url };
   }
 
-  async createCustomer(workspaceId: string, email: string, name: string): Promise<string> {
-    return `xendit_cust_${workspaceId}`;
+  async createCustomer(userId: string, email: string, name: string): Promise<string> {
+    return `xendit_cust_${userId}`;
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {

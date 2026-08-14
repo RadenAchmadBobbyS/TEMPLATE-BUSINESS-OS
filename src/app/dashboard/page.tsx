@@ -23,6 +23,7 @@ import { Card } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { FadeIn, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 import { CornerMarks, PageHeader } from '@/shared/ui/blueprint';
+import { CreateWebsiteModal } from '@/core/websites/components/CreateWebsiteModal';
 
 // deterministic gradient per website tile — visual identity, not fake data
 const tileGradients = [
@@ -202,16 +203,17 @@ export default async function DashboardPage() {
           }
           actions={
             <>
-              <Button
-                asChild
-                className="h-10 rounded-none px-4 text-sm font-medium transition-transform hover:-translate-y-0.5"
-                style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
-              >
-                <Link href="/dashboard/websites">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Website
-                </Link>
-              </Button>
+              {active.role === 'OWNER' || active.role === 'ADMIN' || active.canCreateDelete ? (
+                <CreateWebsiteModal>
+                  <Button
+                    className="h-10 rounded-none px-4 text-sm font-medium transition-transform hover:-translate-y-0.5"
+                    style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Website
+                  </Button>
+                </CreateWebsiteModal>
+              ) : null}
               <Button
                 variant="outline"
                 asChild
@@ -222,16 +224,18 @@ export default async function DashboardPage() {
                   Media Library
                 </Link>
               </Button>
-              <Button
-                variant="outline"
-                asChild
-                className="h-10 rounded-none border-[var(--ink)] px-4 text-sm font-medium hover:bg-black/5"
-              >
-                <Link href="/dashboard/billing">
-                  <CreditCard className="mr-2 h-4 w-4" />
-                  Billing
-                </Link>
-              </Button>
+              {active.role === 'OWNER' && (
+                <Button
+                  variant="outline"
+                  asChild
+                  className="h-10 rounded-none border-[var(--ink)] px-4 text-sm font-medium hover:bg-black/5"
+                >
+                  <Link href="/dashboard/billing">
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Billing
+                  </Link>
+                </Button>
+              )}
               <Button
                 variant="outline"
                 asChild
@@ -390,15 +394,17 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <Link href="/dashboard/team" className="relative z-10">
-            <Button
-              variant="outline"
-              className="mt-5 h-10 w-full rounded-none border-[var(--ink)] text-xs font-medium transition-colors hover:bg-[var(--ink)] hover:text-white"
-            >
-              <Users className="mr-2 h-3.5 w-3.5" />
-              Manage Team
-            </Button>
-          </Link>
+          {active.role !== 'EDITOR' && (
+            <Link href="/dashboard/team" className="relative z-10">
+              <Button
+                variant="outline"
+                className="mt-5 h-10 w-full rounded-none border-[var(--ink)] text-xs font-medium transition-colors hover:bg-[var(--ink)] hover:text-white"
+              >
+                <Users className="mr-2 h-3.5 w-3.5" />
+                Manage Team
+              </Button>
+            </Link>
+          )}
         </Card>
       </StaggerItem>
 

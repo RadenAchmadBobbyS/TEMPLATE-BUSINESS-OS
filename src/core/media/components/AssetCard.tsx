@@ -29,8 +29,11 @@ type Asset = {
   metadata?: any;
 };
 
+import { useWorkspace } from "@/core/workspaces/components/WorkspaceProvider";
+
 export function AssetCard({ asset }: { asset: Asset }) {
   const { toast } = useToast();
+  const { role, canCreateDelete } = useWorkspace();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,10 +44,15 @@ export function AssetCard({ asset }: { asset: Asset }) {
   const handleDelete = async () => {
     setIsLoading(true);
     try {
-      await deleteAsset(asset.id);
+      const res = await deleteAsset(asset.id);
+      if (!res.success) {
+        toast({ title: "Error", description: res.error || "Failed to delete asset", variant: "destructive" });
+        setIsLoading(false);
+        return;
+      }
       toast({ title: "Asset deleted" });
-    } catch {
-      toast({ title: "Failed to delete asset", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: "An unexpected error occurred", variant: "destructive" });
       setIsLoading(false);
     }
   };
@@ -84,10 +92,21 @@ export function AssetCard({ asset }: { asset: Asset }) {
                 <DropdownMenuItem onClick={() => setIsEditorOpen(true)}>
                   <Expand className="mr-2 h-4 w-4" /> Edit & Process
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-                  <Trash2 className="mr-2 h-4 w-4" /> Delete
-                </DropdownMenuItem>
+                {role === 'OWNER' || role === 'ADMIN' || canCreateDelete ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled>
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete (Restricted)
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

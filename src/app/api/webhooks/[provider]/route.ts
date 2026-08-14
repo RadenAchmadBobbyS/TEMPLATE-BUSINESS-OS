@@ -75,14 +75,14 @@ export async function POST(
     switch (eventType) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        const workspaceId = session.metadata?.workspaceId;
+        const userId = session.metadata?.userId;
         const tier = session.metadata?.tier as SubscriptionTier;
         const subId = session.subscription;
         const customerId = session.customer;
 
-        if (workspaceId && subId) {
+        if (userId && subId) {
           await prisma.subscription.update({
-            where: { workspaceId },
+            where: { userId },
             data: {
               gatewaySubId: subId,
               planTier: tier,
@@ -92,18 +92,17 @@ export async function POST(
           });
 
           // Notification: Subscription Created / Upgraded
-          // Find the owner of the workspace to notify
-          const ownerRole = await prisma.userRole.findFirst({
-            where: { workspaceId, role: "OWNER" }
+          // Find the user to notify
+          const user = await prisma.user.findUnique({
+            where: { id: userId }
           });
           
-          if (ownerRole) {
+          if (user) {
             await dispatchNotification({
-              userId: ownerRole.userId,
-              workspaceId,
+              userId,
               type: NotificationTypes.SUBSCRIPTION_CREATED,
               title: "Subscription Activated",
-              message: `Your workspace has successfully upgraded to the ${tier} plan.`,
+              message: `Your account has successfully upgraded to the ${tier} plan.`,
               actionUrl: "/dashboard/billing",
               actionText: "View Billing",
             });
@@ -126,33 +125,25 @@ export async function POST(
             cancelAtPeriodEnd,
             currentPeriodEnd,
           },
-          include: { workspace: true }
+          include: { user: true }
         });
 
-        if (updatedSub && updatedSub.workspace) {
-          const ownerRole = await prisma.userRole.findFirst({
-            where: { workspaceId: updatedSub.workspaceId, role: "OWNER" }
-          });
-          
-          if (ownerRole) {
-            if (cancelAtPeriodEnd) {
-              await dispatchNotification({
-                userId: ownerRole.userId,
-                workspaceId: updatedSub.workspaceId,
-                type: NotificationTypes.SUBSCRIPTION_CANCELED,
-                title: "Subscription Canceling",
-                message: `Your ${updatedSub.planTier} subscription will cancel at the end of the billing period.`,
-              });
-            } else {
-              await dispatchNotification({
-                userId: ownerRole.userId,
-                workspaceId: updatedSub.workspaceId,
-                type: NotificationTypes.SUBSCRIPTION_UPDATED,
-                title: "Subscription Updated",
-                message: `Your subscription status is now ${status}.`,
-                sendEmail: false, // Too noisy to email on every update
-              });
-            }
+        if (updatedSub && updatedSub.user) {
+          if (cancelAtPeriodEnd) {
+            await dispatchNotification({
+              userId: updatedSub.userId,
+              type: NotificationTypes.SUBSCRIPTION_CANCELED,
+              title: "Subscription Canceling",
+              message: `Your ${updatedSub.planTier} subscription will cancel at the end of the billing period.`,
+            });
+          } else {
+            await dispatchNotification({
+              userId: updatedSub.userId,
+              type: NotificationTypes.SUBSCRIPTION_UPDATED,
+              title: "Subscription Updated",
+              message: `Your subscription status is now ${status}.`,
+              sendEmail: false,
+            });
           }
         }
         break;
@@ -178,21 +169,14 @@ export async function POST(
             data: { status: "ACTIVE" }
           });
           
-          const ownerRole = await prisma.userRole.findFirst({
-            where: { workspaceId: sub.workspaceId, role: "OWNER" }
+          await dispatchNotification({
+            userId: sub.userId,
+            type: NotificationTypes.PAYMENT_SUCCESS,
+            title: "Payment Successful",
+            message: `We successfully processed your payment of ${(invoice.amount_paid / 100).toFixed(2)} ${invoice.currency.toUpperCase()}.`,
+            actionUrl: "/dashboard/billing",
+            actionText: "View Invoice",
           });
-
-          if (ownerRole) {
-            await dispatchNotification({
-              userId: ownerRole.userId,
-              workspaceId: sub.workspaceId,
-              type: NotificationTypes.PAYMENT_SUCCESS,
-              title: "Payment Successful",
-              message: `We successfully processed your payment of ${(invoice.amount_paid / 100).toFixed(2)} ${invoice.currency.toUpperCase()}.`,
-              actionUrl: "/dashboard/billing",
-              actionText: "View Invoice",
-            });
-          }
         }
         break;
       }
@@ -206,21 +190,14 @@ export async function POST(
             data: { status: "PAST_DUE" }
           });
 
-          const ownerRole = await prisma.userRole.findFirst({
-            where: { workspaceId: sub.workspaceId, role: "OWNER" }
+          await dispatchNotification({
+            userId: sub.userId,
+            type: NotificationTypes.PAYMENT_FAILED,
+            title: "Payment Failed",
+            message: `We couldn't process your payment. Your subscription is now PAST_DUE. Please update your payment method.`,
+            actionUrl: "/dashboard/billing",
+            actionText: "Update Payment Method",
           });
-
-          if (ownerRole) {
-            await dispatchNotification({
-              userId: ownerRole.userId,
-              workspaceId: sub.workspaceId,
-              type: NotificationTypes.PAYMENT_FAILED,
-              title: "Payment Failed",
-              message: `We couldn't process your payment. Your subscription is now PAST_DUE. Please update your payment method.`,
-              actionUrl: "/dashboard/billing",
-              actionText: "Update Payment Method",
-            });
-          }
         }
         break;
       }

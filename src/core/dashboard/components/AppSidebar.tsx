@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import { WorkspaceSwitcher } from '@/core/workspaces/components/WorkspaceSwitcher';
+import { useWorkspace } from '@/core/workspaces/components/WorkspaceProvider';
 import { BlueprintLogo } from '@/shared/ui/blueprint';
 
 import {
@@ -51,15 +52,19 @@ const menuButtonClass =
 
 export function AppSidebar({ isSuperAdmin }: { isSuperAdmin?: boolean }) {
   const pathname = usePathname();
+  const { role } = useWorkspace();
 
   const isActive = (url: string, exact?: boolean) => {
     if (exact) return pathname === url;
     return pathname === url || pathname.startsWith(url + '/');
   };
 
-  const navSecondary = data.navSecondary.filter(
-    (item) => item.title !== 'Admin Panel' || isSuperAdmin
-  );
+  const navSecondary = data.navSecondary.filter((item) => {
+    if (item.title === 'Admin Panel' && !isSuperAdmin) return false;
+    if (item.title === 'Billing' && role !== 'OWNER') return false;
+    if (item.title === 'Settings' && role === 'EDITOR') return false;
+    return true;
+  });
 
   return (
     <Sidebar

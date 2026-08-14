@@ -31,9 +31,9 @@ export class StripeProvider implements PaymentProvider {
       mode: "subscription",
       success_url: params.successUrl,
       cancel_url: params.cancelUrl,
-      client_reference_id: params.workspaceId,
+      client_reference_id: params.userId,
       metadata: {
-        workspaceId: params.workspaceId,
+        userId: params.userId,
         tier: params.tier,
       },
       // Note: customer is omitted to let Stripe create a new customer mapping automatically
@@ -46,13 +46,13 @@ export class StripeProvider implements PaymentProvider {
     return { url: session.url };
   }
 
-  async createCustomer(workspaceId: string, email: string, name: string): Promise<string> {
+  async createCustomer(userId: string, email: string, name: string): Promise<string> {
     const stripe = this.getStripeClient();
     const customer = await stripe.customers.create({
       email,
       name,
       metadata: {
-        workspaceId,
+        userId,
       },
     });
 

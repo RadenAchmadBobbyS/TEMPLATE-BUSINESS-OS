@@ -241,7 +241,7 @@ export async function getAnalyticsGoals(websiteId: string) {
 
 export async function createAnalyticsGoal(websiteId: string, name: string, eventName: string) {
   const { role } = await ensureWebsiteAccess(websiteId);
-  if (role === "VIEWER") throw new Error("Unauthorized to create goals");
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(role)) throw new Error("Unauthorized to create goals");
 
   const goal = await prisma.analyticsGoal.create({
     data: { websiteId, name, eventName, active: true }
@@ -255,7 +255,7 @@ export async function deleteAnalyticsGoal(goalId: string) {
   if (!goal) throw new Error("Goal not found");
   
   const { role } = await ensureWebsiteAccess(goal.websiteId);
-  if (role === "VIEWER") throw new Error("Unauthorized to delete goals");
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(role)) throw new Error("Unauthorized to delete goals");
 
   await prisma.analyticsGoal.delete({ where: { id: goalId } });
   revalidatePath(`/dashboard/websites/${goal.websiteId}/analytics`);
@@ -274,7 +274,7 @@ export async function getAnalyticsFunnels(websiteId: string) {
 
 export async function createAnalyticsFunnel(websiteId: string, name: string, steps: string[]) {
   const { role } = await ensureWebsiteAccess(websiteId);
-  if (role === "VIEWER") throw new Error("Unauthorized");
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(role)) throw new Error("Unauthorized");
 
   const funnel = await prisma.analyticsFunnel.create({
     data: { websiteId, name, steps: steps }
@@ -287,7 +287,7 @@ export async function deleteAnalyticsFunnel(funnelId: string) {
   const funnel = await prisma.analyticsFunnel.findUnique({ where: { id: funnelId } });
   if (!funnel) throw new Error("Funnel not found");
   const { role } = await ensureWebsiteAccess(funnel.websiteId);
-  if (role === "VIEWER") throw new Error("Unauthorized");
+  if (!["OWNER", "ADMIN", "EDITOR"].includes(role)) throw new Error("Unauthorized");
   await prisma.analyticsFunnel.delete({ where: { id: funnelId } });
   revalidatePath(`/dashboard/websites/${funnel.websiteId}/analytics`);
 }

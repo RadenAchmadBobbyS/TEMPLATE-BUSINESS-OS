@@ -7,7 +7,8 @@ import { componentRegistry } from "@/core/builder/registry";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 
 export function RenderNode({ node }: { node: BuilderNode }) {
-  const { selectedNodeId, hoveredNodeId, selectNode, hoverNode, previewMode, deviceMode } = useBuilderStore();
+  const { selectedNodeId, hoveredNodeId, selectNode, hoverNode, previewMode, deviceMode, isReadOnly } = useBuilderStore();
+  const isPreview = previewMode || isReadOnly;
 
   const isSelected = selectedNodeId === node.id;
   const isHovered = hoveredNodeId === node.id;
@@ -22,7 +23,7 @@ export function RenderNode({ node }: { node: BuilderNode }) {
       type: node.type,
       isContainer,
     },
-    disabled: !isContainer || previewMode
+    disabled: !isContainer || isPreview
   });
 
   // Use Draggable to allow moving the node
@@ -32,7 +33,7 @@ export function RenderNode({ node }: { node: BuilderNode }) {
       type: node.type,
       nodeId: node.id
     },
-    disabled: previewMode
+    disabled: isPreview
   });
 
   // Combine refs (one for wrapping div, one for the draggable handle if we want, or just both on the wrapper)
@@ -49,24 +50,24 @@ export function RenderNode({ node }: { node: BuilderNode }) {
   }
 
   const handleSelect = (e: React.MouseEvent) => {
-    if (previewMode) return;
+    if (isPreview) return;
     e.stopPropagation();
     selectNode(node.id);
   };
 
   const handleHover = (e: React.MouseEvent) => {
-    if (previewMode) return;
+    if (isPreview) return;
     e.stopPropagation();
     hoverNode(node.id);
   };
 
   const handleMouseLeave = (e: React.MouseEvent) => {
-    if (previewMode) return;
+    if (isPreview) return;
     e.stopPropagation();
     hoverNode(null);
   };
 
-  const wrapperClass = previewMode 
+  const wrapperClass = isPreview 
     ? "" 
     : `relative transition-all ${isSelected ? "ring-2 ring-primary z-10" : isHovered ? "ring-1 ring-primary/50 cursor-pointer" : "ring-1 ring-transparent hover:ring-border border-dashed border border-transparent hover:border-border"}`;
 
@@ -79,22 +80,22 @@ export function RenderNode({ node }: { node: BuilderNode }) {
   return (
     <div 
       ref={setRef}
-      className={`${wrapperClass} ${isOver && isContainer && !previewMode ? "ring-2 ring-green-500 ring-inset bg-green-50/10" : ""}`}
+      className={`${wrapperClass} ${isOver && isContainer && !isPreview ? "ring-2 ring-green-500 ring-inset bg-green-50/10" : ""}`}
       style={style}
       onClick={handleSelect}
       onMouseOver={handleHover}
       onMouseLeave={handleMouseLeave}
-      {...(previewMode ? {} : { ...listeners, ...attributes })}
+      {...(isPreview ? {} : { ...listeners, ...attributes })}
     >
       {/* Visual Badge when Selected */}
-      {!previewMode && isSelected && (
+      {!isPreview && isSelected && (
         <div className="absolute -top-6 left-0 bg-primary text-primary-foreground text-[10px] px-2 py-1 rounded-t-md font-medium z-20 shadow-sm flex items-center gap-2 pointer-events-auto">
           <span className="cursor-grab">⋮⋮</span>
           {node.type}
         </div>
       )}
       
-      <Component {...node.props} styles={node.styles} mode={deviceMode} previewMode={previewMode}>
+      <Component {...node.props} styles={node.styles} mode={deviceMode} previewMode={isPreview}>
         {node.children?.map((child: BuilderNode) => (
           <RenderNode key={child.id} node={child} />
         ))}

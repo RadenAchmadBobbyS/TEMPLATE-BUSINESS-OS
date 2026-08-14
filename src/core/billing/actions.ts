@@ -11,20 +11,23 @@ import { xenditProvider } from './providers/xendit';
 import { getRemainingQuota } from './entitlements';
 import { PLAN_LIMITS } from './plans.config';
 
-import { requireActiveWorkspace, checkWorkspacePermission } from '@/core/workspaces/server-context';
+import { requireActiveWorkspace, requireActiveWorkspaceAction, checkWorkspacePermission } from '@/core/workspaces/server-context';
 
-async function getWorkspaceAccess() {
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'ADMIN'); // This will check OWNER or ADMIN
+async function getWorkspaceAccess(requiredRole: "OWNER" | "ADMIN" | "EDITOR" = "ADMIN") {
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, ownerId } = active;
+  checkWorkspacePermission(role, requiredRole);
 
-  return workspace.id;
+  if (!ownerId) throw new Error('Workspace has no owner');
+  return { workspaceId: workspace.id, ownerId };
 }
 
 export async function getSubscriptionData() {
-  const workspaceId = await getWorkspaceAccess();
+  const { ownerId } = await getWorkspaceAccess('OWNER');
 
   const subscription = await prisma.subscription.findUnique({
-    where: { workspaceId },
+    where: { userId: ownerId },
     include: {
       invoices: {
         orderBy: { createdAt: 'desc' },
@@ -36,7 +39,7 @@ export async function getSubscriptionData() {
   if (!subscription) {
     const newSub = await prisma.subscription.create({
       data: {
-        workspaceId,
+        userId: ownerId,
         planTier: 'FREE',
         status: 'ACTIVE',
       },
@@ -47,6 +50,7 @@ export async function getSubscriptionData() {
 
   return subscription;
 }
+
 
 const TIER_RANK = {
   FREE: 0,
@@ -74,9 +78,9 @@ export async function changeSubscriptionTier(
   gateway: string = 'STRIPE',
   currency: string = 'USD',
 ) {
-  const workspaceId = await getWorkspaceAccess();
+  const { workspaceId, ownerId } = await getWorkspaceAccess('OWNER');
 
-  const currentSub = await prisma.subscription.findUnique({ where: { workspaceId } });
+  const currentSub = await prisma.subscription.findUnique({ where: { userId: ownerId } });
   if (!currentSub) throw new Error('Subscription not found');
 
   const currentRank = TIER_RANK[currentSub.planTier];
@@ -105,7 +109,7 @@ export async function changeSubscriptionTier(
 
   try {
     const result = await provider.createCheckoutSession({
-      workspaceId,
+      userId: ownerId,
       tier,
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?success=true`,
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?canceled=true`,
@@ -120,9 +124,9 @@ export async function changeSubscriptionTier(
 }
 
 export async function cancelSubscription() {
-  const workspaceId = await getWorkspaceAccess();
+  const { ownerId } = await getWorkspaceAccess('OWNER');
 
-  const currentSub = await prisma.subscription.findUnique({ where: { workspaceId } });
+  const currentSub = await prisma.subscription.findUnique({ where: { userId: ownerId } });
   if (!currentSub) throw new Error('Subscription not found');
 
   // State Machine Validation
@@ -139,7 +143,7 @@ export async function cancelSubscription() {
   }
 
   const updated = await prisma.subscription.update({
-    where: { workspaceId },
+    where: { userId: ownerId },
     data: {
       status: 'CANCELED',
       cancelAtPeriodEnd: true, // Data remains accessible until period end
@@ -151,14 +155,14 @@ export async function cancelSubscription() {
 }
 
 export async function retryFailedInvoice(invoiceId: string, gateway: string = 'STRIPE') {
-  const workspaceId = await getWorkspaceAccess();
+  const { ownerId } = await getWorkspaceAccess('OWNER');
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: { subscription: true },
   });
   if (!invoice) throw new Error('Invoice not found');
-  if (invoice.subscription.workspaceId !== workspaceId) throw new Error('Unauthorized');
+  if (invoice.subscription.userId !== ownerId) throw new Error('Unauthorized');
 
   // Record a mock transaction success for now
   await prisma.transaction.create({
@@ -190,7 +194,7 @@ export async function retryFailedInvoice(invoiceId: string, gateway: string = 'S
 }
 
 export async function processRefund(invoiceId: string) {
-  const workspaceId = await getWorkspaceAccess();
+  const { ownerId } = await getWorkspaceAccess('OWNER');
 
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -200,7 +204,7 @@ export async function processRefund(invoiceId: string) {
     },
   });
   if (!invoice) throw new Error('Invoice not found');
-  if (invoice.subscription.workspaceId !== workspaceId) throw new Error('Unauthorized');
+  if (invoice.subscription.userId !== ownerId) throw new Error('Unauthorized');
 
   const tx = invoice.transactions[0];
 

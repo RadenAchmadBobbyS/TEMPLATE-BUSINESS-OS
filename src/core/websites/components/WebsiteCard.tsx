@@ -67,9 +67,13 @@ type Website = {
 export function WebsiteCard({
   website,
   view = 'grid',
+  role,
+  canCreateDelete = false,
 }: {
   website: Website;
   view?: 'grid' | 'list';
+  role?: string;
+  canCreateDelete?: boolean;
 }) {
   const { toast } = useToast();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -79,10 +83,11 @@ export function WebsiteCard({
   const handleArchive = async () => {
     setIsActionLoading(true);
     try {
-      await archiveWebsite(website.id);
+      const res = await archiveWebsite(website.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to archive');
       toast({ title: 'Website archived' });
-    } catch {
-      toast({ title: 'Failed to archive', type: 'error' });
+    } catch (error: any) {
+      toast({ title: error.message || 'Failed to archive', variant: 'destructive' });
     } finally {
       setIsActionLoading(false);
     }
@@ -91,10 +96,11 @@ export function WebsiteCard({
   const handleRestore = async () => {
     setIsActionLoading(true);
     try {
-      await restoreWebsite(website.id);
+      const res = await restoreWebsite(website.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to restore');
       toast({ title: 'Website restored' });
-    } catch {
-      toast({ title: 'Failed to restore', type: 'error' });
+    } catch (error: any) {
+      toast({ title: error.message || 'Failed to restore', variant: 'destructive' });
     } finally {
       setIsActionLoading(false);
     }
@@ -103,10 +109,11 @@ export function WebsiteCard({
   const handleDuplicate = async () => {
     setIsActionLoading(true);
     try {
-      await duplicateWebsite(website.id);
+      const res = await duplicateWebsite(website.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to duplicate');
       toast({ title: 'Website duplicated' });
-    } catch {
-      toast({ title: 'Failed to duplicate', type: 'error' });
+    } catch (error: any) {
+      toast({ title: error.message || 'Failed to duplicate', variant: 'destructive' });
     } finally {
       setIsActionLoading(false);
     }
@@ -115,11 +122,12 @@ export function WebsiteCard({
   const handleDelete = async () => {
     setIsActionLoading(true);
     try {
-      await deleteWebsite(website.id);
+      const res = await deleteWebsite(website.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to delete');
       toast({ title: 'Website deleted permanently' });
       setIsDeleteDialogOpen(false);
-    } catch {
-      toast({ title: 'Failed to delete', type: 'error' });
+    } catch (error: any) {
+      toast({ title: error.message || 'Failed to delete', variant: 'destructive' });
     } finally {
       setIsActionLoading(false);
     }
@@ -129,8 +137,14 @@ export function WebsiteCard({
     setIsActionLoading(true);
     try {
       const { exportWebsiteToTemplate } = await import('@/core/websites/actions');
-      const jsonStr = await exportWebsiteToTemplate(website.id);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const result = await exportWebsiteToTemplate(website.id);
+      
+      if (typeof result !== 'string') {
+        toast({ title: result.error || 'Failed to export template', type: 'error' });
+        return;
+      }
+      
+      const blob = new Blob([result], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -154,64 +168,76 @@ export function WebsiteCard({
         <span className="sr-only">Open menu</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/pages`} />}>
-          <FileText className="mr-2 h-4 w-4" /> Pages
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/templates?applyTo=${website.id}`} />}>
-          <ListOrdered className="mr-2 h-4 w-4" /> Apply Template
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/navigation`} />}>
-          <ListOrdered className="mr-2 h-4 w-4" /> Navigation
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/cms`} />}>
-          <Database className="mr-2 h-4 w-4" /> Headless CMS
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/forms`} />}>
-          <Table className="mr-2 h-4 w-4" /> Forms & Leads
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/analytics`} />}>
-          <BarChart3 className="mr-2 h-4 w-4" /> Analytics
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/redirects`} />}>
-          <LinkIcon className="mr-2 h-4 w-4" /> URL Redirects
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/domains`} />}>
-          <Globe className="mr-2 h-4 w-4" /> Domains & SSL
-        </DropdownMenuItem>
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/deploy`} />}>
-          <Rocket className="mr-2 h-4 w-4" /> Deploy & Hosting
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/settings`} />}>
-          <Settings className="mr-2 h-4 w-4" /> Settings
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-          <Settings className="mr-2 h-4 w-4" /> Edit Details
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleDuplicate}>
-          <Copy className="mr-2 h-4 w-4" /> Duplicate
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleExportTemplate}>
-          <Download className="mr-2 h-4 w-4" /> Export as Template
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {website.deletedAt ? (
-          <DropdownMenuItem onClick={handleRestore}>
-            <Undo className="mr-2 h-4 w-4" /> Restore
-          </DropdownMenuItem>
-        ) : (
-          <DropdownMenuItem onClick={handleArchive}>
-            <Archive className="mr-2 h-4 w-4" /> Archive
-          </DropdownMenuItem>
-        )}
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => setIsDeleteDialogOpen(true)}
-          className="text-destructive focus:text-destructive"
-        >
-          <Trash2 className="mr-2 h-4 w-4" /> Delete
-        </DropdownMenuItem>
+          <>
+            <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/pages`} />}>
+              <FileText className="mr-2 h-4 w-4" /> Pages
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={`/dashboard/templates?applyTo=${website.id}`} />}>
+              <ListOrdered className="mr-2 h-4 w-4" /> Apply Template
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/navigation`} />}>
+              <ListOrdered className="mr-2 h-4 w-4" /> Navigation
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/cms`} />}>
+              <Database className="mr-2 h-4 w-4" /> Headless CMS
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/forms`} />}>
+              <Table className="mr-2 h-4 w-4" /> Forms & Leads
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/analytics`} />}>
+              <BarChart3 className="mr-2 h-4 w-4" /> Analytics
+            </DropdownMenuItem>
+            {role !== 'EDITOR' && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/redirects`} />}>
+                  <LinkIcon className="mr-2 h-4 w-4" /> URL Redirects
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/domains`} />}>
+                  <Globe className="mr-2 h-4 w-4" /> Domains & SSL
+                </DropdownMenuItem>
+                <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/deploy`} />}>
+                  <Rocket className="mr-2 h-4 w-4" /> Deploy & Hosting
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem render={<Link href={`/dashboard/websites/${website.id}/settings`} />}>
+                  <Settings className="mr-2 h-4 w-4" /> Settings
+                </DropdownMenuItem>
+              </>
+            )}
+            <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+              <Settings className="mr-2 h-4 w-4" /> Edit Details
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportTemplate}>
+              <Download className="mr-2 h-4 w-4" /> Export as Template
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            
+            {(role === 'OWNER' || role === 'ADMIN' || canCreateDelete) && (
+              <>
+                <DropdownMenuItem onClick={handleDuplicate}>
+                  <Copy className="mr-2 h-4 w-4" /> Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {website.deletedAt ? (
+                  <DropdownMenuItem onClick={handleRestore}>
+                    <Undo className="mr-2 h-4 w-4" /> Restore
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={handleArchive}>
+                    <Archive className="mr-2 h-4 w-4" /> Archive
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              </>
+            )}
+          </>
       </DropdownMenuContent>
     </DropdownMenu>
   );

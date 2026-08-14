@@ -6,10 +6,13 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import dns from "dns";
 
-import { requireActiveWorkspace, checkWorkspacePermission } from "@/core/workspaces/server-context";
+import { requireActiveWorkspace, requireActiveWorkspaceAction, checkWorkspacePermission } from "@/core/workspaces/server-context";
 
-async function ensureWebsiteAccess(websiteId: string) {
-  const { workspace, role } = await requireActiveWorkspace();
+async function ensureWebsiteAccess(websiteId: string, requiredRole: "OWNER" | "ADMIN" | "EDITOR" = "EDITOR") {
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  checkWorkspacePermission(role, requiredRole);
   
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
@@ -28,11 +31,6 @@ async function ensureWebsiteAccess(websiteId: string) {
   });
   if (!website) throw new Error("Website not found");
   
-  // Check that the user is EDITOR, ADMIN, or OWNER (VIEWER cannot manage domains)
-  if (role === "VIEWER") {
-    throw new Error("Unauthorized. Viewer role cannot manage domains.");
-  }
-
   return website;
 }
 
@@ -186,7 +184,7 @@ export async function rollbackWebsite(websiteId: string, deploymentId: string) {
 // =====================================
 
 export async function getDomains(websiteId: string) {
-  await ensureWebsiteAccess(websiteId);
+  await ensureWebsiteAccess(websiteId, "EDITOR");
   return prisma.domain.findMany({
     where: { websiteId },
     orderBy: { createdAt: "asc" }

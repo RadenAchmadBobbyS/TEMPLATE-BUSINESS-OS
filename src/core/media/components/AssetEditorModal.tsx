@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { updateAssetSettings, replaceAsset } from "@/core/media/actions";
+import { updateAssetSettings, replaceAsset, toggleFavoriteAsset } from "@/core/media/actions";
 import { useToast } from "@/shared/hooks/use-toast";
 import { Crop, FileType2, Settings2, Download, RefreshCw, Loader2, Image as ImageIcon, Heart } from "lucide-react";
 
@@ -42,9 +42,8 @@ export function AssetEditorModal({
   const handleSaveSettings = async () => {
     setIsLoading(true);
     try {
-      await updateAssetSettings(asset.id, {
+      const res = await updateAssetSettings(asset.id, {
         name,
-        isFavorite,
         metadata: {
           ...asset.metadata,
           processedFormat: format,
@@ -52,12 +51,30 @@ export function AssetEditorModal({
           crop: cropData
         }
       });
+      if (!res.success) {
+        toast({ title: "Error", description: res.error || "Failed to save settings", variant: "destructive" });
+        return;
+      }
       toast({ title: "Asset settings saved" });
       onClose();
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "An unexpected error occurred", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    const newValue = !isFavorite;
+    setIsFavorite(newValue);
+    try {
+      const res = await toggleFavoriteAsset(asset.id);
+      if (!res.success) {
+        throw new Error(res.error || "Failed to toggle favorite");
+      }
+    } catch (e: any) {
+      setIsFavorite(!newValue); // revert
+      toast({ title: "Error", description: e.message || "Failed to toggle favorite", variant: "destructive" });
     }
   };
 
@@ -69,11 +86,15 @@ export function AssetEditorModal({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      await replaceAsset(asset.id, formData);
+      const res = await replaceAsset(asset.id, formData);
+      if (!res.success) {
+        toast({ title: "Replacement Failed", description: res.error || "Failed to replace asset", variant: "destructive" });
+        return;
+      }
       toast({ title: "Asset replaced successfully", description: "All URLs remain intact." });
       onClose();
     } catch (error: any) {
-      toast({ title: "Replacement Failed", description: error.message, variant: "destructive" });
+      toast({ title: "Replacement Failed", description: error.message || "An unexpected error occurred", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -134,11 +155,11 @@ export function AssetEditorModal({
             </div>
 
             <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2 cursor-pointer" onClick={() => setIsFavorite(!isFavorite)}>
+              <Label className="flex items-center gap-2 cursor-pointer" onClick={handleToggleFavorite}>
                 <Heart className={`h-4 w-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
                 Favorite Asset
               </Label>
-              <Switch checked={isFavorite} onChange={(e: any) => setIsFavorite(e.target.checked)} />
+              <Switch checked={isFavorite} onChange={handleToggleFavorite} />
             </div>
 
             <div className="pt-4 border-t space-y-4">

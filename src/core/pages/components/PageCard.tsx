@@ -18,7 +18,7 @@ import {
 import { PageSettingsModal } from "./PageSettingsModal";
 import { Switch } from "@/shared/ui/switch";
 
-export function PageCard({ page, level = 0 }: { page: any; level?: number }) {
+export function PageCard({ page, level = 0, role }: { page: any; level?: number; role?: string }) {
   const { toast } = useToast();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -101,64 +101,64 @@ export function PageCard({ page, level = 0 }: { page: any; level?: number }) {
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 mr-4">
-            <span className="text-xs text-muted-foreground font-medium">
-              {page.isPublished ? "Published" : "Draft"}
-            </span>
-            <Switch 
-              checked={page.isPublished} 
-              onChange={handleTogglePublish}
-              disabled={isPublishing}
-            />
-          </div>
+            <div className="flex items-center gap-2 mr-4">
+              <span className="text-xs text-muted-foreground font-medium">
+                {page.isPublished ? "Published" : "Draft"}
+              </span>
+              <Switch 
+                checked={page.isPublished} 
+                onChange={handleTogglePublish}
+                disabled={isPublishing}
+              />
+            </div>
 
-          <Button render={
-            <Link href={`/builder/${page.websiteId}/${page.id}`}>
-              <Edit2 className="mr-2 h-4 w-4" /> Edit Canvas
-            </Link>
-          } variant="default" size="sm" />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger render={
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            } />
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-                <Globe className="mr-2 h-4 w-4" /> Page Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem render={
-                <Link href={`/dashboard/websites/${page.websiteId}/pages/${page.id}/seo`}>
-                  <Globe className="mr-2 h-4 w-4 text-blue-500" /> Advanced SEO
+              <Button render={
+                <Link href={`/builder/${page.websiteId}/${page.id}`}>
+                  <Edit2 className="mr-2 h-4 w-4" /> Edit Canvas
                 </Link>
-              } />
-              {!isHomepage && (
-                <DropdownMenuItem onClick={handleSetHomepage}>
-                  <Home className="mr-2 h-4 w-4" /> Set as Homepage
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleReorder("up")}>
-                <ArrowUp className="mr-2 h-4 w-4" /> Move Up
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleReorder("down")}>
-                <ArrowDown className="mr-2 h-4 w-4" /> Move Down
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleDuplicate}>
-                <Copy className="mr-2 h-4 w-4" /> Duplicate
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={handleDelete} 
-                className="text-destructive focus:text-destructive"
-                disabled={isHomepage}
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              } variant="default" size="sm" />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger render={
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                } />
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                    <Globe className="mr-2 h-4 w-4" /> Page Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem render={
+                    <Link href={`/dashboard/websites/${page.websiteId}/pages/${page.id}/seo`}>
+                      <Globe className="mr-2 h-4 w-4 text-blue-500" /> Advanced SEO
+                    </Link>
+                  } />
+                  {!isHomepage && (
+                    <DropdownMenuItem onClick={handleSetHomepage}>
+                      <Home className="mr-2 h-4 w-4" /> Set as Homepage
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleReorder("up")}>
+                    <ArrowUp className="mr-2 h-4 w-4" /> Move Up
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleReorder("down")}>
+                    <ArrowDown className="mr-2 h-4 w-4" /> Move Down
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleDuplicate}>
+                    <Copy className="mr-2 h-4 w-4" /> Duplicate
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={handleDelete} 
+                    className="text-destructive focus:text-destructive"
+                    disabled={isHomepage}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
         </div>
       </div>
 

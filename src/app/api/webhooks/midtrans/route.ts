@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { order_id, transaction_status, custom_field1: workspaceId, custom_field2: tier } = event;
+  const { order_id, transaction_status, custom_field1: userId, custom_field2: tier } = event;
   if (!order_id) return NextResponse.json({ error: "Missing order_id" }, { status: 400 });
 
   const eventId = `midtrans_${order_id}_${transaction_status}`;
@@ -46,9 +46,9 @@ export async function POST(req: NextRequest) {
 
   try {
     if (transaction_status === "settlement" || transaction_status === "capture") {
-      if (workspaceId && tier) {
+      if (userId && tier) {
         const sub = await prisma.subscription.update({
-          where: { workspaceId },
+          where: { userId },
           data: {
             gatewaySubId: order_id, // Midtrans doesn't have a recurring sub ID in Snap typically, we use order_id as reference
             planTier: tier as SubscriptionTier,
@@ -57,44 +57,36 @@ export async function POST(req: NextRequest) {
           }
         });
 
-        const ownerRole = await prisma.userRole.findFirst({
-          where: { workspaceId, role: "OWNER" }
+        const user = await prisma.user.findUnique({
+          where: { id: userId }
         });
         
-        if (ownerRole) {
+        if (user) {
           await dispatchNotification({
-            userId: ownerRole.userId,
-            workspaceId,
+            userId,
             type: NotificationTypes.SUBSCRIPTION_CREATED,
             title: "Subscription Activated",
-            message: `Your workspace has successfully upgraded to the ${tier} plan via Midtrans.`,
+            message: `Your account has successfully upgraded to the ${tier} plan via Midtrans.`,
             actionUrl: "/dashboard/billing",
             actionText: "View Billing",
           });
         }
       }
     } else if (transaction_status === "deny" || transaction_status === "cancel" || transaction_status === "expire") {
-      if (workspaceId) {
+      if (userId) {
         const sub = await prisma.subscription.update({
-          where: { workspaceId },
+          where: { userId },
           data: { status: "PAST_DUE" }
         });
 
-        const ownerRole = await prisma.userRole.findFirst({
-          where: { workspaceId: sub.workspaceId, role: "OWNER" }
+        await dispatchNotification({
+          userId: sub.userId,
+          type: NotificationTypes.PAYMENT_FAILED,
+          title: "Payment Failed",
+          message: `We couldn't process your payment via Midtrans. Your subscription is now PAST_DUE.`,
+          actionUrl: "/dashboard/billing",
+          actionText: "Update Payment Method",
         });
-
-        if (ownerRole) {
-          await dispatchNotification({
-            userId: ownerRole.userId,
-            workspaceId: sub.workspaceId,
-            type: NotificationTypes.PAYMENT_FAILED,
-            title: "Payment Failed",
-            message: `We couldn't process your payment via Midtrans. Your subscription is now PAST_DUE.`,
-            actionUrl: "/dashboard/billing",
-            actionText: "Update Payment Method",
-          });
-        }
       }
     }
   } catch (error) {

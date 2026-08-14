@@ -7,6 +7,7 @@ import { getActiveWorkspace } from '@/core/workspaces/server-context';
 import { WebsiteList } from '@/core/websites/components/WebsiteList';
 import { WebsiteToolbar } from '@/core/websites/components/WebsiteToolbar';
 import { WebsiteSkeleton } from '@/core/websites/components/WebsiteSkeleton';
+import { CreateWebsiteModal } from '@/core/websites/components/CreateWebsiteModal';
 
 import { Button } from '@/shared/ui/button';
 import { StaggerContainer, StaggerItem } from '@/shared/ui/motion';
@@ -15,16 +16,20 @@ import { PageHeader, btnPrimary } from '@/shared/ui/blueprint';
 async function WebsitesData({
   options,
   view,
+  role,
+  canCreateDelete,
 }: {
   options: GetWebsitesOptions;
   view: 'grid' | 'list';
+  role: string;
+  canCreateDelete?: boolean;
 }) {
   const { websites, total, pages } = await getUserWebsites(options);
   const currentPage = options.page || 1;
 
   return (
     <div className="space-y-6">
-      <WebsiteList websites={websites} view={view} />
+      <WebsiteList websites={websites} view={view} role={role} canCreateDelete={canCreateDelete} />
 
       {pages > 1 && (
         <div
@@ -108,23 +113,17 @@ export default async function WebsitesPage({
           title="Websites"
           description="Manage your deployed sites, custom domains, and global settings."
           actions={
-            active ? (
-              <Button
-                asChild
-                className={btnPrimary}
-                style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
-              >
-                <Link href="/dashboard/templates">
+            active && (active.role === 'OWNER' || active.role === 'ADMIN' || active.canCreateDelete) ? (
+              <CreateWebsiteModal>
+                <Button
+                  className={btnPrimary}
+                  style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   New Website
-                </Link>
-              </Button>
-            ) : (
-              <Button disabled className={btnPrimary}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Website
-              </Button>
-            )
+                </Button>
+              </CreateWebsiteModal>
+            ) : null
           }
         />
       </StaggerItem>
@@ -154,7 +153,7 @@ export default async function WebsitesPage({
 
       <StaggerItem>
         <Suspense fallback={<WebsiteSkeleton view={view} />} key={JSON.stringify(options) + view}>
-          <WebsitesData options={options} view={view} />
+          <WebsitesData options={options} view={view} role={active?.role || 'EDITOR'} canCreateDelete={active?.canCreateDelete} />
         </Suspense>
       </StaggerItem>
     </StaggerContainer>

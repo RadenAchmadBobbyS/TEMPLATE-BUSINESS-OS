@@ -105,8 +105,8 @@ export function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0 flex-1">
         {eyebrow && (
           <span
             className="font-data mb-2 flex items-center gap-2 text-xs"
@@ -131,7 +131,7 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {actions && <div className="flex flex-wrap gap-3">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-start justify-start sm:justify-end gap-3 shrink-0">{actions}</div>}
     </div>
   );
 }

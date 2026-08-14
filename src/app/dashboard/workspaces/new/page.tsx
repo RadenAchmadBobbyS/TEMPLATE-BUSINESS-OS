@@ -2,11 +2,14 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createWorkspace } from '@/core/workspaces/actions';
+import { createWorkspace, canCreateWorkspace } from '@/core/workspaces/actions';
 import { createWebsite } from '@/core/websites/actions';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { useToast } from '@/shared/hooks/use-toast';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/shared/ui/card';
+import { ShieldAlert } from 'lucide-react';
+import { CornerMarks } from '@/shared/ui/blueprint';
 import {
   Loader2,
   Building2,
@@ -40,6 +43,9 @@ function NewWorkspaceForm() {
       if (templateId) {
         toast({ title: 'Creating website from template...' });
         const newWebsite = await createWebsite({ name: `${name} Website`, templateId });
+        if ('error' in newWebsite) {
+          throw new Error(newWebsite.error);
+        }
         router.push(`/dashboard/websites/${newWebsite.id}/pages`);
       } else {
         router.push('/dashboard');
@@ -249,7 +255,41 @@ function NewWorkspaceForm() {
   );
 }
 
-export default function NewWorkspacePage() {
+export default async function NewWorkspacePage() {
+  const quota = await canCreateWorkspace();
+
+  if (!quota.allowed) {
+    return (
+      <div className="mx-auto mt-20 max-w-lg px-4">
+        <Card className="rounded-none border-2 border-red-600 shadow-[4px_4px_0px_theme(colors.red.600)] bg-[var(--paper)] relative">
+          <CornerMarks />
+          <CardHeader>
+            <div className="flex items-center gap-2 text-red-600 mb-2">
+              <ShieldAlert className="h-6 w-6" />
+              <CardTitle className="font-display">Quota Exceeded</CardTitle>
+            </div>
+            <CardDescription className="text-red-600/70">
+              You cannot create another workspace.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm font-data">
+              {quota.message}
+            </p>
+            <Button
+              asChild
+              className="mt-6 rounded-none border-2 border-red-600 bg-red-600 hover:bg-red-700 hover:border-red-700 shadow-[2px_2px_0px_theme(colors.red.800)] text-white w-full"
+            >
+              <Link href="/dashboard/billing">
+                View Subscription Plans
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <Suspense
       fallback={

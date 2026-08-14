@@ -19,7 +19,6 @@ enum Role {
   OWNER
   ADMIN
   EDITOR
-  VIEWER
 }
 
 enum TicketCategory {
@@ -101,29 +100,31 @@ model User {
   updatedAt     DateTime   @updatedAt
   deletedAt     DateTime?
 
-  sessions      Session[]
-  accounts      Account[]
+  sessions               Session[]
+  accounts               Account[]
   roles                  UserRole[]
   notifications          Notification[]
   notificationPreference NotificationPreference?
-  auditLogs              AuditLog[]     @relation("UserAudits")
-  assignedTickets        Ticket[]       @relation("UserAssignedTickets")
-  ticketReplies TicketReply[]  @relation("UserReplies")
+  auditLogs              AuditLog[]              @relation("UserAudits")
+  assignedTickets        Ticket[]                @relation("UserAssignedTickets")
+  ticketReplies          TicketReply[]           @relation("UserReplies")
+  subscription           Subscription?
+  favoriteAssets         UserAssetFavorite[]
 
   @@index([deletedAt])
   @@map("user")
 }
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  token     String   @unique
-  expiresAt DateTime
-  ipAddress String?
-  userAgent String?
-  impersonatedBy String? @db.Uuid
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  token          String   @unique
+  expiresAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -202,13 +203,12 @@ model Workspace {
   deletedAt  DateTime?
   isArchived Boolean   @default(false)
 
-  members      UserRole[]
-  invitations  WorkspaceInvitation[]
-  websites     Website[]
-  subscription Subscription?
-  auditLogs    AuditLog[]
-  tickets      Ticket[]
-  assets       Asset[]
+  members       UserRole[]
+  invitations   WorkspaceInvitation[]
+  websites      Website[]
+  auditLogs     AuditLog[]
+  tickets       Ticket[]
+  assets        Asset[]
   notifications Notification[]
 
   @@index([deletedAt])
@@ -216,10 +216,11 @@ model Workspace {
 
 // Permission Table (3NF Mapping)
 model UserRole {
-  id          String @id @default(uuid()) @db.Uuid
-  userId      String @db.Uuid
-  workspaceId String @db.Uuid
-  role        Role   @default(VIEWER)
+  id              String  @id @default(uuid()) @db.Uuid
+  userId          String  @db.Uuid
+  workspaceId     String  @db.Uuid
+  role            Role    @default(EDITOR)
+  canCreateDelete Boolean @default(false)
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -229,16 +230,17 @@ model UserRole {
 }
 
 model WorkspaceInvitation {
-  id          String   @id @default(uuid()) @db.Uuid
-  workspaceId String   @db.Uuid
-  email       String
-  role        Role
-  token       String   @unique
-  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
+  id              String   @id @default(uuid()) @db.Uuid
+  workspaceId     String   @db.Uuid
+  email           String
+  role            Role
+  canCreateDelete Boolean  @default(false)
+  token           String   @unique
+  status          String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
 
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, email])
   @@index([email])
@@ -261,27 +263,27 @@ model Website {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  pages          Page[]
-  cmsModels      CmsModel[]
-  theme          Theme?
-  domains        Domain[]
-  redirects      Redirect[]
-  deployments    Deployment[]
-  forms          Form[]
-  visitors       AnalyticsVisitor[]
-  sessions       AnalyticsSession[]
-  events         AnalyticsEvent[]
-  goals          AnalyticsGoal[]
-  funnels        AnalyticsFunnel[]
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  pages       Page[]
+  cmsModels   CmsModel[]
+  theme       Theme?
+  domains     Domain[]
+  redirects   Redirect[]
+  deployments Deployment[]
+  forms       Form[]
+  visitors    AnalyticsVisitor[]
+  sessions    AnalyticsSession[]
+  events      AnalyticsEvent[]
+  goals       AnalyticsGoal[]
+  funnels     AnalyticsFunnel[]
 
   @@index([workspaceId, deletedAt])
 }
 
 model Domain {
-  id         String   @id @default(uuid()) @db.Uuid
-  websiteId  String   @db.Uuid
-  hostname   String   @unique
+  id                String   @id @default(uuid()) @db.Uuid
+  websiteId         String   @db.Uuid
+  hostname          String   @unique
   isCustom          Boolean  @default(true)
   isVerified        Boolean  @default(false)
   verificationToken String?
@@ -311,7 +313,7 @@ model Deployment {
   id        String   @id @default(uuid()) @db.Uuid
   websiteId String   @db.Uuid
   version   Int      @default(1)
-  status    String   // SUCCESS, FAILED, ROLLBACK
+  status    String // SUCCESS, FAILED, ROLLBACK
   snapshot  Json
   message   String?
   duration  Int // in ms
@@ -332,7 +334,7 @@ model Page {
   parentId           String?   @db.Uuid
   order              Int       @default(0)
   settings           Json?
-  seoMetadata        Json?     // Meta, OpenGraph, Canonical, Schema
+  seoMetadata        Json? // Meta, OpenGraph, Canonical, Schema
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   deletedAt          DateTime?
@@ -412,13 +414,13 @@ model Asset {
   sizeBytes   Int
   s3Key       String    @unique
   fileHash    String
-  isFavorite  Boolean   @default(false)
   metadata    Json?
   createdAt   DateTime  @default(now())
 
-  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  folder    Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  tags      AssetTag[]
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  folder      Folder?             @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  tags        AssetTag[]
+  favoritedBy UserAssetFavorite[]
 
   @@index([workspaceId, type])
   @@index([fileHash])
@@ -427,11 +429,33 @@ model Asset {
 model AssetTag {
   id      String @id @default(uuid()) @db.Uuid
   assetId String @db.Uuid
-  name    String
+  tagId   String @db.Uuid
 
   asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
+  @@unique([assetId, tagId])
+}
+
+model UserAssetFavorite {
+  userId    String   @db.Uuid
+  assetId   String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, assetId])
+  @@index([userId])
   @@index([assetId])
+}
+
+model Tag {
+  id          String @id @default(uuid()) @db.Uuid
+  workspaceId String @db.Uuid
+  name        String
+
+  assets AssetTag[]
 }
 
 // ==========================================
@@ -526,20 +550,20 @@ model TicketReply {
 // ==========================================
 
 model Subscription {
-  id               String             @id @default(uuid()) @db.Uuid
-  workspaceId      String             @unique @db.Uuid
-  gatewaySubId     String?            @unique
-  gateway          String             @default("STRIPE") // STRIPE, MIDTRANS, XENDIT
-  planTier         SubscriptionTier   @default(FREE)
-  billingCycle     BillingCycle       @default(MONTHLY)
-  status           SubscriptionStatus @default(TRIALING)
-  cancelAtPeriodEnd Boolean           @default(false)
-  currentPeriodEnd DateTime?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @unique @db.Uuid
+  gatewaySubId      String?            @unique
+  gateway           String             @default("STRIPE") // STRIPE, MIDTRANS, XENDIT
+  planTier          SubscriptionTier   @default(FREE)
+  billingCycle      BillingCycle       @default(MONTHLY)
+  status            SubscriptionStatus @default(TRIALING)
+  cancelAtPeriodEnd Boolean            @default(false)
+  currentPeriodEnd  DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  invoices  Invoice[]
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
 
   @@index([status])
 }
@@ -548,9 +572,9 @@ model Invoice {
   id               String   @id @default(uuid()) @db.Uuid
   subscriptionId   String   @db.Uuid
   gatewayInvoiceId String?  @unique
-  amount           Int      // in smallest currency unit (cents, or IDR actual)
+  amount           Int // in smallest currency unit (cents, or IDR actual)
   currency         String   @default("USD")
-  status           String   // PAID, OPEN, VOID, FAILED, REFUNDED
+  status           String // PAID, OPEN, VOID, FAILED, REFUNDED
   pdfUrl           String?
   createdAt        DateTime @default(now())
 
@@ -563,11 +587,11 @@ model Invoice {
 model Transaction {
   id          String   @id @default(uuid()) @db.Uuid
   invoiceId   String   @db.Uuid
-  gateway     String   // STRIPE, MIDTRANS, XENDIT
+  gateway     String // STRIPE, MIDTRANS, XENDIT
   gatewayTxId String   @unique
   amount      Int
   currency    String
-  status      String   // SUCCESS, FAILED, REFUNDED, PENDING
+  status      String // SUCCESS, FAILED, REFUNDED, PENDING
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -587,9 +611,9 @@ model PageAnalytics {
   visitors   Int      @default(0)
   sessions   Int      @default(0)
   bounceRate Float    @default(0)
-  countries  Json?    // e.g. {"US": 150, "ID": 80}
-  devices    Json?    // e.g. {"Desktop": 500, "Mobile": 200}
-  referrers  Json?    // e.g. {"google.com": 400, "direct": 100}
+  countries  Json? // e.g. {"US": 150, "ID": 80}
+  devices    Json? // e.g. {"Desktop": 500, "Mobile": 200}
+  referrers  Json? // e.g. {"google.com": 400, "direct": 100}
   date       DateTime @db.Date
 
   page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
@@ -627,13 +651,13 @@ model EventQueue {
 }
 
 model NotificationPreference {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @unique @db.Uuid
-  security  Boolean  @default(true)
-  billing   Boolean  @default(true)
-  workspace Boolean  @default(true)
-  website   Boolean  @default(true)
-  system    Boolean  @default(true)
+  id        String  @id @default(uuid()) @db.Uuid
+  userId    String  @unique @db.Uuid
+  security  Boolean @default(true)
+  billing   Boolean @default(true)
+  workspace Boolean @default(true)
+  website   Boolean @default(true)
+  system    Boolean @default(true)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -666,16 +690,16 @@ model Notification {
 // ==========================================
 
 model Form {
-  id              String           @id @default(uuid()) @db.Uuid
-  websiteId       String           @db.Uuid
-  name            String
-  fields          Json             // Array of field configurations (type, label, required, options)
-  settings        Json             // successPage, notificationEmails, captchaEnabled
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  
-  website         Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  submissions     FormSubmission[]
+  id        String   @id @default(uuid()) @db.Uuid
+  websiteId String   @db.Uuid
+  name      String
+  fields    Json // Array of field configurations (type, label, required, options)
+  settings  Json // successPage, notificationEmails, captchaEnabled
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  website     Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
 
   @@index([websiteId])
 }
@@ -686,7 +710,7 @@ model FormSubmission {
   data      Json
   createdAt DateTime @default(now())
 
-  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form Form @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId, createdAt])
 }
@@ -770,7 +794,7 @@ model AnalyticsFunnel {
   id        String   @id @default(uuid()) @db.Uuid
   websiteId String   @db.Uuid
   name      String
-  steps     Json     // Array of eventName or path conditions
+  steps     Json // Array of eventName or path conditions
   createdAt DateTime @default(now())
 
   website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
@@ -783,12 +807,12 @@ model AnalyticsFunnel {
 // ==========================================
 
 model WebhookEvent {
-  id          String   @id @default(uuid()) @db.Uuid
-  provider    String   // STRIPE, MIDTRANS, XENDIT
-  eventId     String   @unique
-  eventType   String
-  status      String   @default("PROCESSED") // PROCESSED, FAILED
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid()) @db.Uuid
+  provider  String // STRIPE, MIDTRANS, XENDIT
+  eventId   String   @unique
+  eventType String
+  status    String   @default("PROCESSED") // PROCESSED, FAILED
+  createdAt DateTime @default(now())
 
   @@index([provider, eventId])
 }

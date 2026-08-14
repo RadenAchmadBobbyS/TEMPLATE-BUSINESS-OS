@@ -8,10 +8,10 @@ import {
   updateMemberRole,
   getWorkspaceInvitations,
   revokeInvitation,
+  resendInvitation,
 } from '@/core/workspaces/actions';
 import { useWorkspace } from '@/core/workspaces/components/WorkspaceProvider';
 import { useToast } from '@/shared/hooks/use-toast';
-import { formatDistanceToNow } from 'date-fns';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/shared/ui/table';
@@ -20,7 +20,7 @@ import { Input } from '@/shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/avatar';
 import { Badge } from '@/shared/ui/badge';
-import { Loader2, Trash2, MailPlus } from 'lucide-react';
+import { Loader2, Trash2, MailPlus, RefreshCw, XCircle } from 'lucide-react';
 import { CornerMarks } from '@/shared/ui/blueprint';
 import {
   Dialog,
@@ -31,6 +31,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/shared/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/shared/ui/alert-dialog';
 
 export function WorkspaceMembersTable() {
   const { activeWorkspace, role: currentUserRole } = useWorkspace();
@@ -40,9 +50,16 @@ export function WorkspaceMembersTable() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('VIEWER');
+  const [inviteRole, setInviteRole] = useState('EDITOR');
+  const [inviteCanCreateDelete, setInviteCanCreateDelete] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+
+  // Modal states
+  const [removeUserId, setRemoveUserId] = useState<string | null>(null);
+  const [revokeInviteId, setRevokeInviteId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const isAdmin = currentUserRole === 'OWNER' || currentUserRole === 'ADMIN';
 
@@ -66,54 +83,98 @@ export function WorkspaceMembersTable() {
   }, [activeWorkspace?.id]);
 
   const handleInvite = async () => {
+    setFieldErrors({});
     if (!inviteEmail) return;
     setIsInviting(true);
+    
     try {
-      await inviteMember({ email: inviteEmail, role: inviteRole });
+      const result = await inviteMember({ 
+        email: inviteEmail, 
+        role: inviteRole, 
+        canCreateDelete: inviteRole === 'EDITOR' ? inviteCanCreateDelete : false 
+      });
+      if (!result.success) {
+        if (result.fieldErrors) {
+          setFieldErrors(result.fieldErrors);
+        } else {
+          toast({ title: 'Failed to invite', description: result.error, variant: 'destructive' });
+        }
+        return;
+      }
+      
       toast({ title: 'Member invited successfully' });
       setIsInviteOpen(false);
       setInviteEmail('');
       fetchMembers();
     } catch (error: any) {
-      toast({ title: 'Failed to invite', description: error.message, variant: 'destructive' });
+      toast({ title: 'Failed to invite', description: 'An unexpected error occurred.', variant: 'destructive' });
     } finally {
       setIsInviting(false);
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  const handleRoleChange = async (userId: string, newRole: string, canCreateDelete: boolean = false) => {
     try {
-      await updateMemberRole(userId, newRole as any);
+      const result = await updateMemberRole(userId, newRole as any, newRole === 'EDITOR' ? canCreateDelete : false);
+      if (!result.success) {
+        toast({ title: 'Failed to update role', description: result.error, variant: 'destructive' });
+        return;
+      }
       toast({ title: 'Role updated' });
       fetchMembers();
     } catch (error: any) {
-      toast({ title: 'Failed to update role', description: error.message, variant: 'destructive' });
+      toast({ title: 'Failed to update role', description: 'An unexpected error occurred.', variant: 'destructive' });
     }
   };
 
-  const handleRemove = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return;
+  const handleRemove = async () => {
+    if (!removeUserId) return;
+    setIsProcessing(true);
     try {
-      await removeMember(userId);
+      const result = await removeMember(removeUserId);
+      if (!result.success) {
+        toast({ title: 'Failed to remove member', description: result.error, variant: 'destructive' });
+        return;
+      }
       toast({ title: 'Member removed' });
       fetchMembers();
     } catch (error: any) {
-      toast({
-        title: 'Failed to remove member',
-        description: error.message,
-        variant: 'destructive',
-      });
+      toast({ title: 'Failed to remove member', description: 'An unexpected error occurred.', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+      setRemoveUserId(null);
     }
   };
 
-  const handleRevokeInvite = async (inviteId: string) => {
-    if (!confirm('Are you sure you want to revoke this invitation?')) return;
+  const handleRevokeInvite = async () => {
+    if (!revokeInviteId) return;
+    setIsProcessing(true);
     try {
-      await revokeInvitation(inviteId);
+      const result = await revokeInvitation(revokeInviteId);
+      if (!result.success) {
+        toast({ title: 'Failed to revoke', description: result.error, variant: 'destructive' });
+        return;
+      }
       toast({ title: 'Invitation revoked' });
       fetchMembers();
     } catch (error: any) {
-      toast({ title: 'Failed to revoke', description: error.message, variant: 'destructive' });
+      toast({ title: 'Failed to revoke', description: 'An unexpected error occurred.', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+      setRevokeInviteId(null);
+    }
+  };
+
+  const handleResendInvite = async (inviteId: string) => {
+    try {
+      const result = await resendInvitation(inviteId);
+      if (!result.success) {
+        toast({ title: 'Failed to resend', description: result.error, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Invitation resent successfully' });
+    } catch (error: any) {
+      toast({ title: 'Failed to resend', description: 'An unexpected error occurred.', variant: 'destructive' });
     }
   };
 
@@ -129,20 +190,27 @@ export function WorkspaceMembersTable() {
         </div>
 
         {isAdmin && (
-          <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
-            <DialogTrigger render={
-              <Button size="sm" className="rounded-none border-2 border-[var(--ink)] shadow-[2px_2px_0px_var(--ink)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all">
-                <MailPlus className="mr-2 h-4 w-4" />
-                Invite Member
-              </Button>
-            } />
+          <Dialog open={isInviteOpen} onOpenChange={(open) => {
+            setIsInviteOpen(open);
+            if (!open) {
+              setInviteEmail('');
+              setFieldErrors({});
+            }
+          }}>
+            <DialogTrigger
+              render={
+                <Button size="sm" className="rounded-none border-2 border-[var(--ink)] shadow-[2px_2px_0px_var(--ink)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all">
+                  <MailPlus className="mr-2 h-4 w-4" />
+                  Invite Member
+                </Button>
+              }
+            />
             <DialogContent className="rounded-none border-2 border-[var(--ink)] shadow-[8px_8px_0px_var(--ink)] bg-[var(--paper)]">
               <CornerMarks />
               <DialogHeader>
                 <DialogTitle className="font-display">Invite a new member</DialogTitle>
                 <DialogDescription style={{ color: "var(--slate)" }}>
-                  Enter their email address and select a role. They must already have an account for
-                  this MVP.
+                  Enter their email address and select a role. They must already have an account for this MVP.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -152,9 +220,15 @@ export function WorkspaceMembersTable() {
                     type="email"
                     placeholder="colleague@example.com"
                     value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    className="rounded-none border-2 border-[var(--ink)]"
+                    onChange={(e) => {
+                      setInviteEmail(e.target.value);
+                      if (fieldErrors.email) setFieldErrors({});
+                    }}
+                    className={`rounded-none border-2 ${fieldErrors.email ? 'border-red-500' : 'border-[var(--ink)]'}`}
                   />
+                  {fieldErrors.email && (
+                    <p className="text-xs text-red-500 font-medium mt-1">{fieldErrors.email[0]}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold uppercase tracking-wider font-data">Role</label>
@@ -165,10 +239,23 @@ export function WorkspaceMembersTable() {
                     <SelectContent className="rounded-none border-2 border-[var(--ink)] shadow-[4px_4px_0px_var(--ink)]">
                       <SelectItem value="ADMIN">Admin</SelectItem>
                       <SelectItem value="EDITOR">Editor</SelectItem>
-                      <SelectItem value="VIEWER">Viewer</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                {inviteRole === 'EDITOR' && (
+                  <div className="flex items-center space-x-2">
+                    <input 
+                      type="checkbox" 
+                      id="canCreateDelete" 
+                      checked={inviteCanCreateDelete}
+                      onChange={(e) => setInviteCanCreateDelete(e.target.checked)}
+                      className="rounded border-[var(--ink)] text-[var(--ink)] focus:ring-[var(--ink)]"
+                    />
+                    <label htmlFor="canCreateDelete" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Allow deleting & creating assets/websites
+                    </label>
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsInviteOpen(false)} className="rounded-none border-2 border-[var(--ink)] hover:bg-[var(--line)]">
@@ -183,6 +270,7 @@ export function WorkspaceMembersTable() {
           </Dialog>
         )}
       </CardHeader>
+      
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center py-8">
@@ -214,26 +302,45 @@ export function WorkspaceMembersTable() {
                   </TableCell>
                   <TableCell>
                     {isAdmin && m.role !== 'OWNER' ? (
-                      <Select
-                        value={m.role}
-                        onValueChange={(val: any) => handleRoleChange(m.user.id, val)}
-                      >
-                        <SelectTrigger className="h-8 w-[120px] text-xs rounded-none border-[var(--line)]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-none border-2 border-[var(--ink)] shadow-[2px_2px_0px_var(--ink)]">
-                          <SelectItem value="ADMIN">Admin</SelectItem>
-                          <SelectItem value="EDITOR">Editor</SelectItem>
-                          <SelectItem value="VIEWER">Viewer</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col gap-2">
+                        <Select
+                          value={m.role}
+                          onValueChange={(val: any) => handleRoleChange(m.user.id, val, m.canCreateDelete)}
+                        >
+                          <SelectTrigger className="h-8 w-[120px] text-xs rounded-none border-[var(--line)]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="rounded-none border-2 border-[var(--ink)] shadow-[2px_2px_0px_var(--ink)]">
+                            <SelectItem value="ADMIN">Admin</SelectItem>
+                            <SelectItem value="EDITOR">Editor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        {m.role === 'EDITOR' && (
+                           <div className="flex items-center space-x-1.5 mt-1">
+                             <input 
+                               type="checkbox" 
+                               checked={m.canCreateDelete || false}
+                               onChange={(e) => handleRoleChange(m.user.id, 'EDITOR', e.target.checked)}
+                               className="h-3 w-3 rounded border-[var(--ink)] text-[var(--ink)] focus:ring-[var(--ink)]"
+                               title="Allow deleting & creating assets/websites"
+                             />
+                             <span className="text-[10px] leading-none text-muted-foreground whitespace-nowrap">Can Create/Delete</span>
+                           </div>
+                        )}
+                      </div>
                     ) : (
-                      <Badge variant={m.role === 'OWNER' ? 'default' : 'secondary'} className="rounded-none border-0 text-[10px] font-bold uppercase tracking-wider font-data">{m.role}</Badge>
+                      <div className="flex flex-col gap-1 items-start">
+                        <Badge variant={m.role === 'OWNER' ? 'default' : 'secondary'} className="rounded-none border-0 text-[10px] font-bold uppercase tracking-wider font-data">{m.role}</Badge>
+                        {m.role === 'EDITOR' && m.canCreateDelete && (
+                           <span className="text-[10px] leading-none text-muted-foreground whitespace-nowrap">Can Create/Delete</span>
+                        )}
+                      </div>
                     )}
                   </TableCell>
                   <TableCell className="text-right">
                     {isAdmin && m.role !== 'OWNER' && (
-                      <Button variant="ghost" size="icon" className="rounded-none hover:bg-red-100" onClick={() => handleRemove(m.user.id)}>
+                      <Button variant="ghost" size="icon" className="rounded-none hover:bg-red-100" onClick={() => setRemoveUserId(m.user.id)}>
                         <Trash2 className="text-destructive h-4 w-4" />
                       </Button>
                     )}
@@ -255,13 +362,25 @@ export function WorkspaceMembersTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="opacity-60">{inv.role}</Badge>
+                    <div className="flex flex-col gap-1 items-start">
+                      <Badge variant="outline" className="opacity-60">{inv.role}</Badge>
+                      {inv.role === 'EDITOR' && inv.canCreateDelete && (
+                        <span className="text-[10px] leading-none text-muted-foreground whitespace-nowrap opacity-60">Can Create/Delete</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     {isAdmin && (
-                      <Button variant="ghost" size="sm" onClick={() => handleRevokeInvite(inv.id)} className="text-destructive">
-                        Revoke
-                      </Button>
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => handleResendInvite(inv.id)} className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+                          <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                          Resend
+                        </Button>
+                        <Button variant="ghost" size="sm" onClick={() => setRevokeInviteId(inv.id)} className="text-destructive hover:bg-red-50">
+                          <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                          Revoke
+                        </Button>
+                      </div>
                     )}
                   </TableCell>
                 </TableRow>
@@ -270,6 +389,44 @@ export function WorkspaceMembersTable() {
           </Table>
         )}
       </CardContent>
+
+      {/* Confirmation Modals */}
+      <AlertDialog open={!!removeUserId} onOpenChange={(open) => !open && setRemoveUserId(null)}>
+        <AlertDialogContent className="rounded-none border-2 border-[var(--ink)] shadow-[8px_8px_0px_var(--ink)] bg-[var(--paper)]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Remove Member</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: "var(--slate)" }}>
+              Are you sure you want to remove this member? They will lose access to the workspace immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing} className="rounded-none border-2 border-[var(--ink)] hover:bg-[var(--line)]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRemove(); }} disabled={isProcessing} className="rounded-none border-2 border-[var(--ink)] bg-red-600 hover:bg-red-700 text-white shadow-[2px_2px_0px_var(--ink)]">
+              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Remove Member
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!revokeInviteId} onOpenChange={(open) => !open && setRevokeInviteId(null)}>
+        <AlertDialogContent className="rounded-none border-2 border-[var(--ink)] shadow-[8px_8px_0px_var(--ink)] bg-[var(--paper)]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display">Revoke Invitation</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: "var(--slate)" }}>
+              Are you sure you want to revoke this invitation? The recipient will no longer be able to accept it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing} className="rounded-none border-2 border-[var(--ink)] hover:bg-[var(--line)]">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRevokeInvite(); }} disabled={isProcessing} className="rounded-none border-2 border-[var(--ink)] bg-red-600 hover:bg-red-700 text-white shadow-[2px_2px_0px_var(--ink)]">
+              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Revoke Invitation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Card>
   );
 }

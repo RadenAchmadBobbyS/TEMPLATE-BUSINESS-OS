@@ -1,6 +1,7 @@
 import { SubscriptionTier } from "@prisma/client";
 
 export type PlanLimits = {
+  maxWorkspaces: number;
   maxWebsites: number;
   maxPagesPerWebsite: number;
   maxStorageBytes: number;
@@ -23,6 +24,7 @@ export type PlanLimits = {
 
 export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
   FREE: {
+    maxWorkspaces: 1,
     maxWebsites: 1,
     maxPagesPerWebsite: 5,
     maxStorageBytes: 100 * 1024 * 1024, // 100MB
@@ -43,6 +45,7 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     hasBasicAnalytics: true,
   },
   STARTER: {
+    maxWorkspaces: 3,
     maxWebsites: 3,
     maxPagesPerWebsite: 20,
     maxStorageBytes: 500 * 1024 * 1024, // 500MB
@@ -63,6 +66,7 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     hasBasicAnalytics: true,
   },
   PRO: {
+    maxWorkspaces: 10,
     maxWebsites: 10,
     maxPagesPerWebsite: 100,
     maxStorageBytes: 5 * 1024 * 1024 * 1024, // 5GB
@@ -83,6 +87,7 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     hasBasicAnalytics: true,
   },
   BUSINESS: {
+    maxWorkspaces: 50,
     maxWebsites: 50,
     maxPagesPerWebsite: 1000,
     maxStorageBytes: 50 * 1024 * 1024 * 1024, // 50GB
@@ -103,6 +108,7 @@ export const PLAN_LIMITS: Record<SubscriptionTier, PlanLimits> = {
     hasBasicAnalytics: true,
   },
   ENTERPRISE: {
+    maxWorkspaces: 999999,
     maxWebsites: 999999,
     maxPagesPerWebsite: 999999,
     maxStorageBytes: 1024 * 1024 * 1024 * 1024, // 1TB

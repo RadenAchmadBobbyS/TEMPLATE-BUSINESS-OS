@@ -61,6 +61,8 @@ export default async function DashboardLayout({
     <WorkspaceProvider
       initialWorkspace={active?.workspace ?? null}
       initialRole={active?.role ?? null}
+      initialCanCreateDelete={active?.canCreateDelete ?? false}
+      initialSubscriptionTier={active?.ownerSubscription?.planTier ?? null}
       workspaces={allWorkspaces}
     >
       <SidebarProvider>

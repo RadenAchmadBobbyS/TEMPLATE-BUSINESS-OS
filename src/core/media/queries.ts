@@ -29,11 +29,16 @@ export async function getAssets(folderId?: string | null, search?: string, isFav
   const workspaceId = await getWorkspaceId();
   if (!workspaceId) return [];
 
-  return prisma.asset.findMany({
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const assets = await prisma.asset.findMany({
     where: {
       workspaceId,
       ...(folderId !== undefined ? { folderId: folderId || null } : {}),
-      ...(isFavorite !== undefined ? { isFavorite } : {}),
+      ...(isFavorite !== undefined && userId ? {
+        favoritedBy: isFavorite ? { some: { userId } } : { none: { userId } }
+      } : {}),
       ...(search ? {
         OR: [
           { url: { contains: search, mode: "insensitive" } },
@@ -41,7 +46,18 @@ export async function getAssets(folderId?: string | null, search?: string, isFav
         ]
       } : {}),
     },
+    include: {
+      favoritedBy: userId ? {
+        where: { userId }
+      } : false
+    },
     orderBy: { createdAt: "desc" },
+  });
+
+  return assets.map((asset: any) => {
+    const isFav = asset.favoritedBy && asset.favoritedBy.length > 0;
+    const { favoritedBy, ...rest } = asset;
+    return { ...rest, isFavorite: isFav };
   });
 }
 

@@ -12,7 +12,7 @@ import { Button } from "@/shared/ui/button";
 import { Separator } from "@/shared/ui/separator";
 
 export function TopToolbar({ websiteId = "", pageId = "" }: { websiteId?: string, pageId?: string }) {
-  const { deviceMode, setDeviceMode, previewMode, togglePreview, undo, redo, past, future, isDirty, isSaving, setIsSaving, setIsDirty, nodes } = useBuilderStore();
+  const { deviceMode, setDeviceMode, previewMode, togglePreview, undo, redo, past, future, isDirty, isSaving, setIsSaving, setIsDirty, nodes, isReadOnly } = useBuilderStore();
   const [isPending, startTransition] = useTransition();
   const [isPublishing, setIsPublishing] = useState(false);
 
@@ -108,24 +108,40 @@ export function TopToolbar({ websiteId = "", pageId = "" }: { websiteId?: string
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="rounded-none hover:bg-[var(--line)]" onClick={undo} disabled={past.length === 0}>
-          <Undo className="h-4 w-4 text-[var(--ink)]" />
-        </Button>
-        <Button variant="ghost" size="icon" className="rounded-none hover:bg-[var(--line)]" onClick={redo} disabled={future.length === 0}>
-          <Redo className="h-4 w-4 text-[var(--ink)]" />
-        </Button>
-        <Separator orientation="vertical" className="h-6 mx-1 bg-[var(--line)]" />
-        <Button variant="outline" className="rounded-none border-[var(--ink)] hover:bg-[var(--ink)] hover:text-white transition-colors" onClick={togglePreview}>
-          <Play className="mr-2 h-4 w-4" /> Preview
-        </Button>
-        <Button className="rounded-none" style={{ backgroundColor: "var(--signal)", color: "white" }} onClick={handleSave} disabled={!isDirty || isSaveLoading}>
-          {isSaveLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-          {isDirty ? "Save Changes" : "Saved"}
-        </Button>
-        <Button onClick={handlePublish} disabled={isPublishing || isDirty} variant="secondary" className="rounded-none border-2 border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--line)]">
-          {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Publish
-        </Button>
+        {!isReadOnly && (
+          <>
+            <Button variant="ghost" size="icon" className="rounded-none hover:bg-[var(--line)]" onClick={undo} disabled={past.length === 0}>
+              <Undo className="h-4 w-4 text-[var(--ink)]" />
+            </Button>
+            <Button variant="ghost" size="icon" className="rounded-none hover:bg-[var(--line)]" onClick={redo} disabled={future.length === 0}>
+              <Redo className="h-4 w-4 text-[var(--ink)]" />
+            </Button>
+          </>
+        )}
+        {!isReadOnly && (
+          <>
+            <Separator orientation="vertical" className="h-6 mx-1 bg-[var(--line)]" />
+            <Button variant="outline" className="rounded-none border-[var(--ink)] hover:bg-[var(--ink)] hover:text-white transition-colors" onClick={togglePreview}>
+              <Play className="mr-2 h-4 w-4" /> Preview
+            </Button>
+          </>
+        )}
+        {isReadOnly ? (
+          <div className="px-3 py-1.5 text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 ml-2 rounded">
+            READ ONLY
+          </div>
+        ) : (
+          <>
+            <Button className="rounded-none" style={{ backgroundColor: "var(--signal)", color: "white" }} onClick={handleSave} disabled={!isDirty || isSaveLoading}>
+              {isSaveLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {isDirty ? "Save Changes" : "Saved"}
+            </Button>
+            <Button onClick={handlePublish} disabled={isPublishing || isDirty} variant="secondary" className="rounded-none border-2 border-[var(--ink)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--line)]">
+              {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Publish
+            </Button>
+          </>
+        )}
       </div>
     </header>
   );

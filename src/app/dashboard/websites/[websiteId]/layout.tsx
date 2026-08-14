@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { WebsiteSubNav } from '@/core/websites/components/WebsiteSubNav';
+import { getActiveWorkspace } from '@/core/workspaces/server-context';
 
 export default async function WebsiteLayout({
   children,
@@ -13,6 +14,8 @@ export default async function WebsiteLayout({
   params: Promise<{ websiteId: string }>;
 }) {
   const resolvedParams = await params;
+  const active = await getActiveWorkspace();
+  const role = active?.role || 'EDITOR';
 
   let website;
   try {
@@ -41,7 +44,7 @@ export default async function WebsiteLayout({
       </div>
 
       {/* Sub Navigation Tabs */}
-      <WebsiteSubNav websiteId={resolvedParams.websiteId} />
+      <WebsiteSubNav websiteId={resolvedParams.websiteId} role={role} />
 
       {/* Page Content */}
       <div className="p-4 md:p-8">{children}</div>

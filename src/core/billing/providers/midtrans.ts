@@ -22,7 +22,7 @@ export class MidtransProvider implements PaymentProvider {
     const plan = PLAN_LIMITS[params.tier];
     if (!plan) throw new Error("Invalid tier config for Midtrans");
 
-    const orderId = `order-${params.workspaceId}-${Date.now()}`;
+    const orderId = `order-${params.userId}-${Date.now()}`;
     
     // We assume IDR pricing
     const grossAmount = params.tier === "FREE" ? 0 : 
@@ -49,7 +49,7 @@ export class MidtransProvider implements PaymentProvider {
         error: params.cancelUrl,
         pending: params.cancelUrl
       },
-      custom_field1: params.workspaceId,
+      custom_field1: params.userId,
       custom_field2: params.tier
     };
 
@@ -79,8 +79,8 @@ export class MidtransProvider implements PaymentProvider {
     return { url: data.redirect_url };
   }
 
-  async createCustomer(workspaceId: string, email: string, name: string): Promise<string> {
-    return `midtrans_cust_${workspaceId}`;
+  async createCustomer(userId: string, email: string, name: string): Promise<string> {
+    return `midtrans_cust_${userId}`;
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {

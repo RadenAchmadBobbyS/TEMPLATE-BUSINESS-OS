@@ -12,7 +12,8 @@ export const updateWorkspaceSchema = z.object({
 
 export const inviteMemberSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  role: z.enum(["ADMIN", "EDITOR", "VIEWER"]),
+  role: z.enum(["ADMIN", "EDITOR"]),
+  canCreateDelete: z.boolean().default(false),
 });
 
 export type CreateWorkspaceInput = z.infer<typeof createWorkspaceSchema>;

@@ -12,6 +12,7 @@ import { LoadingState } from '@/shared/ui/loading-state';
 import { StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 import { CornerMarks, PageHeader, btnPrimary, btnOutline } from '@/shared/ui/blueprint';
 import { PageToolbar } from '@/shared/ui/page-toolbar';
+import { getActiveWorkspace, canPerformDestructiveAction, hasWorkspacePermission } from '@/core/workspaces/server-context';
 
 async function MediaData({
   folderId,
@@ -82,6 +83,8 @@ export default async function MediaPage({
   const search = typeof params.search === 'string' ? params.search : undefined;
   const isFavorite = params.favorite === 'true';
 
+  const active = await getActiveWorkspace();
+
   return (
     <StaggerContainer className="mx-auto max-w-7xl space-y-6">
       <StaggerItem>
@@ -90,25 +93,29 @@ export default async function MediaPage({
           title="Media Library"
           actions={
             <>
-              <CreateFolderModal parentId={folderId}>
-                <Button variant="outline" className={btnOutline}>
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                  New Folder
-                </Button>
-              </CreateFolderModal>
-              <UploadModal folderId={folderId}>
-                <Button
-                  className={btnPrimary}
-                  style={{
-                    backgroundColor: 'var(--signal)',
-                    color: '#fff',
-                    borderColor: 'var(--ink)',
-                  }}
-                >
-                  <UploadCloud className="mr-2 h-4 w-4" />
-                  Upload
-                </Button>
-              </UploadModal>
+              {active && canPerformDestructiveAction(active.role, active.canCreateDelete) && (
+                <CreateFolderModal parentId={folderId}>
+                  <Button variant="outline" className={btnOutline}>
+                    <FolderPlus className="mr-2 h-4 w-4" />
+                    New Folder
+                  </Button>
+                </CreateFolderModal>
+              )}
+              {active && hasWorkspacePermission(active.role, 'EDITOR') && (
+                <UploadModal folderId={folderId}>
+                  <Button
+                    className={btnPrimary}
+                    style={{
+                      backgroundColor: 'var(--signal)',
+                      color: '#fff',
+                      borderColor: 'var(--ink)',
+                    }}
+                  >
+                    <UploadCloud className="mr-2 h-4 w-4" />
+                    Upload
+                  </Button>
+                </UploadModal>
+              )}
             </>
           }
         />

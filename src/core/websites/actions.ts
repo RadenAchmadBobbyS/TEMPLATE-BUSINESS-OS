@@ -18,11 +18,13 @@ import {
 import { dispatchNotification } from '@/core/notifications/dispatcher';
 import { NotificationTypes } from '@/core/notifications/types';
 
-import { requireActiveWorkspace, getActiveWorkspace } from '@/core/workspaces/server-context';
-function checkWritePermission(role: string) {
-  if (role !== 'OWNER' && role !== 'ADMIN' && role !== 'EDITOR') {
-    throw new Error('Insufficient permissions to modify websites.');
-  }
+import { requireActiveWorkspace, requireActiveWorkspaceAction, getActiveWorkspace, hasWorkspacePermission, canPerformDestructiveAction } from '@/core/workspaces/server-context';
+function hasWritePermission(role: string) {
+  return hasWorkspacePermission(role, 'EDITOR');
+}
+
+function hasDestructivePermission(role: string, canCreateDelete: boolean) {
+  return canPerformDestructiveAction(role, canCreateDelete);
 }
 
 function generateBaseSlug(name: string) {
@@ -110,7 +112,9 @@ export async function getWebsiteById(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace } = active;
 
   const website = await prisma.website.findFirst({
     where: {
@@ -138,9 +142,13 @@ export async function createWebsite(data: {
   if (!session) throw new Error('Unauthorized');
 
   const parsed = createWebsiteSchema.parse(data);
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, canCreateDelete } = active;
 
-  checkWritePermission(role);
+  if (!hasDestructivePermission(role, canCreateDelete)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   await assertWebsiteQuotaAvailable(workspace.id, 1);
 
@@ -290,9 +298,13 @@ export async function updateWebsite(
   if (!session) throw new Error('Unauthorized');
 
   const parsed = updateWebsiteSchema.parse(data);
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
 
-  checkWritePermission(role);
+  if (!hasWritePermission(role)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
@@ -322,8 +334,12 @@ export async function archiveWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, canCreateDelete } = active;
+  if (!hasDestructivePermission(role, canCreateDelete)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
@@ -343,8 +359,12 @@ export async function applyTemplateToWebsite(websiteId: string, templateId: stri
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWritePermission(role)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
@@ -480,8 +500,12 @@ export async function deleteWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, canCreateDelete } = active;
+  if (!hasDestructivePermission(role, canCreateDelete)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
@@ -500,8 +524,12 @@ export async function duplicateWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, canCreateDelete } = active;
+  if (!hasDestructivePermission(role, canCreateDelete)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
@@ -532,8 +560,12 @@ export async function restoreWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, canCreateDelete } = active;
+  if (!hasDestructivePermission(role, canCreateDelete)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
@@ -558,8 +590,12 @@ export async function updateWebsiteSettings(id: string, data: any) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWritePermission(role)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
@@ -582,8 +618,12 @@ export async function exportWebsiteToTemplate(websiteId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWritePermission(role);
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWritePermission(role)) {
+    return { success: false, error: 'Insufficient permissions' };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },

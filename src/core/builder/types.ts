@@ -36,6 +36,7 @@ export type BuilderState = {
   // UI state
   deviceMode: DeviceMode;
   previewMode: boolean;
+  isReadOnly: boolean;
   
   // Save / Dirty state
   isDirty: boolean;
@@ -67,5 +68,5 @@ export type BuilderState = {
   // Save Operations
   setIsDirty: (isDirty: boolean) => void;
   setIsSaving: (isSaving: boolean) => void;
-  loadDocument: (doc: BuilderDocument) => void;
+  loadDocument: (doc: BuilderDocument, isReadOnly?: boolean) => void;
 };

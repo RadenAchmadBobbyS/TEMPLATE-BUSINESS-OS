@@ -6,9 +6,11 @@ import { BuilderDocument } from "@/core/builder/schemas";
 
 export function BuilderClientInitializer({ 
   document, 
+  isReadOnly,
   children 
 }: { 
   document: BuilderDocument, 
+  isReadOnly?: boolean,
   children: React.ReactNode 
 }) {
   const { loadDocument } = useBuilderStore();
@@ -16,10 +18,10 @@ export function BuilderClientInitializer({
 
   useEffect(() => {
     if (!initialized.current) {
-      loadDocument(document);
+      loadDocument(document, isReadOnly);
       initialized.current = true;
     }
-  }, [document, loadDocument]);
+  }, [document, loadDocument, isReadOnly]);
 
   return <>{children}</>;
 }

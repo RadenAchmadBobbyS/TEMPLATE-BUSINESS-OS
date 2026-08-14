@@ -91,6 +91,7 @@ export const useBuilderStore = create<BuilderState>((set, get) => {
     hoveredNodeId: null,
     deviceMode: "desktop",
     previewMode: false,
+    isReadOnly: false,
     
     isDirty: false,
     isSaving: false,
@@ -114,12 +115,14 @@ export const useBuilderStore = create<BuilderState>((set, get) => {
     setIsDirty: (isDirty) => set({ isDirty }),
     setIsSaving: (isSaving) => set({ isSaving }),
 
-    loadDocument: (doc: BuilderDocument) => set({
+    loadDocument: (doc, isReadOnly = false) => set({
       nodes: doc.root ? [doc.root] : [],
       past: [],
       future: [],
       isDirty: false,
-      selectedNodeId: null
+      selectedNodeId: null,
+      hoveredNodeId: null,
+      isReadOnly
     }),
 
     updateNodeProps: (id, props) => set((state) => {

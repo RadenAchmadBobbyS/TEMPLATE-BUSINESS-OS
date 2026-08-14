@@ -5,9 +5,13 @@ import { auth } from '@/core/auth/auth';
 import { headers, cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { createWorkspaceSchema, updateWorkspaceSchema, inviteMemberSchema } from './schemas';
-import { requireActiveWorkspace, checkWorkspacePermission } from './server-context';
+import { requireActiveWorkspace, requireActiveWorkspaceAction, checkWorkspacePermission, hasWorkspacePermission } from './server-context';
 import { dispatchNotification } from '@/core/notifications/dispatcher';
 import { NotificationTypes } from '@/core/notifications/types';
+import { sendTransactionalEmail } from '@/core/notifications/email';
+import { z } from 'zod';
+import { render } from '@react-email/components';
+import { WorkspaceInvitationEmail } from '@/core/notifications/emails/WorkspaceInvitationEmail';
 
 async function getUniqueSlug(baseName: string) {
   const slug =
@@ -64,12 +68,49 @@ export async function getAllUserWorkspaces() {
   }));
 }
 
+export async function canCreateWorkspace() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return { allowed: false, message: 'Unauthorized' };
+
+  const userWithSub = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: { subscription: true }
+  });
+  
+  if (!userWithSub) return { allowed: false, message: 'User not found' };
+  
+  const tier = userWithSub.subscription?.planTier || 'FREE';
+  const limits = (await import('@/core/billing/plans.config')).PLAN_LIMITS[tier];
+  
+  const ownedCount = await prisma.userRole.count({
+    where: {
+      userId: session.user.id,
+      role: 'OWNER',
+      workspace: { deletedAt: null, isArchived: false }
+    }
+  });
+
+  if (ownedCount >= limits.maxWorkspaces) {
+    return { 
+      allowed: false, 
+      message: `You have reached the maximum number of workspaces (${limits.maxWorkspaces}) for your ${tier} plan. Please upgrade your subscription to create more.`
+    };
+  }
+
+  return { allowed: true };
+}
+
 export async function createWorkspace(data: any) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
-
+  if (!session) return { success: false, error: 'Unauthorized' };
+  
   const parsed = createWorkspaceSchema.parse(data);
   const slug = await getUniqueSlug(parsed.name);
+
+  const quota = await canCreateWorkspace();
+  if (!quota.allowed) {
+    return { success: false, error: quota.message };
+  }
 
   const workspace = await prisma.workspace.create({
     data: {
@@ -94,8 +135,12 @@ export async function updateWorkspace(data: any) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'ADMIN');
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWorkspacePermission(role, 'ADMIN')) {
+    return { success: false, error: 'Unauthorized.' };
+  }
 
   const parsed = updateWorkspaceSchema.parse(data);
 
@@ -114,15 +159,19 @@ export async function updateWorkspace(data: any) {
   });
 
   revalidatePath('/');
-  return updated;
+  return { success: true, workspace: updated };
 }
 
 export async function archiveWorkspace() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'OWNER');
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWorkspacePermission(role, 'OWNER')) {
+    return { success: false, error: 'Unauthorized.' };
+  }
 
   await prisma.workspace.update({
     where: { id: workspace.id },
@@ -145,7 +194,7 @@ export async function restoreWorkspace(id: string) {
     where: { userId_workspaceId: { userId: session.user.id, workspaceId: id } },
     include: { workspace: true },
   });
-  if (!userRole || userRole.role !== 'OWNER') throw new Error('Unauthorized or not owner');
+  if (!userRole || userRole.role !== 'OWNER') return { success: false, error: 'Unauthorized or not owner' };
 
   await prisma.workspace.update({
     where: { id },
@@ -163,7 +212,7 @@ export async function deleteWorkspace(id: string) {
   const userRole = await prisma.userRole.findUnique({
     where: { userId_workspaceId: { userId: session.user.id, workspaceId: id } },
   });
-  if (!userRole || userRole.role !== 'OWNER') throw new Error('Unauthorized or not owner');
+  if (!userRole || userRole.role !== 'OWNER') return { success: false, error: 'Unauthorized or not owner' };
 
   await prisma.workspace.delete({
     where: { id },
@@ -207,8 +256,12 @@ export async function setActiveWorkspace(workspaceId: string) {
 }
 
 export async function getWorkspaceMembers() {
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'VIEWER');
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWorkspacePermission(role, 'EDITOR')) {
+    return [];
+  }
 
   const members = await prisma.userRole.findMany({
     where: { workspaceId: workspace.id },
@@ -224,61 +277,102 @@ export async function getWorkspaceMembers() {
 }
 
 export async function inviteMember(data: any) {
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'ADMIN');
+  try {
+    const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+    if (role !== 'ADMIN' && role !== 'OWNER') {
+      return { success: false, error: 'Unauthorized. Only ADMIN and OWNER can invite members.' };
+    }
 
-  const parsed = inviteMemberSchema.parse(data);
+    const parsedData = inviteMemberSchema.safeParse(data);
+    if (!parsedData.success) {
+      return { 
+        success: false, 
+        error: 'Invalid input', 
+        fieldErrors: parsedData.error.flatten().fieldErrors 
+      };
+    }
+    const parsed = parsedData.data;
 
-  // Check if user is already in workspace
-  const existingUser = await prisma.user.findUnique({ where: { email: parsed.email } });
-  if (existingUser) {
-    const existingRole = await prisma.userRole.findUnique({
-      where: { userId_workspaceId: { userId: existingUser.id, workspaceId: workspace.id } },
+    // Check if user is already in workspace
+    const existingUser = await prisma.user.findUnique({ where: { email: parsed.email } });
+    if (existingUser) {
+      const existingRole = await prisma.userRole.findUnique({
+        where: { userId_workspaceId: { userId: existingUser.id, workspaceId: workspace.id } },
+      });
+      if (existingRole) return { success: false, error: 'User is already a member of this workspace.' };
+    }
+
+    // Check if invitation already exists and is pending
+    const existingInvite = await prisma.workspaceInvitation.findUnique({
+      where: { workspaceId_email: { workspaceId: workspace.id, email: parsed.email } },
     });
-    if (existingRole) throw new Error('User is already a member of this workspace.');
-  }
 
-  // Check if invitation already exists and is pending
-  const existingInvite = await prisma.workspaceInvitation.findUnique({
-    where: { workspaceId_email: { workspaceId: workspace.id, email: parsed.email } },
-  });
+    if (
+      existingInvite &&
+      existingInvite.status === 'PENDING' &&
+      existingInvite.expiresAt > new Date()
+    ) {
+      return { success: false, error: 'An invitation is already pending for this email.' };
+    }
 
-  if (
-    existingInvite &&
-    existingInvite.status === 'PENDING' &&
-    existingInvite.expiresAt > new Date()
-  ) {
-    throw new Error('An invitation is already pending for this email.');
-  }
+    const token = globalThis.crypto.randomUUID();
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
 
-  const token = globalThis.crypto.randomUUID();
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days from now
+    if (existingInvite) {
+      await prisma.workspaceInvitation.update({
+        where: { id: existingInvite.id },
+        data: { token, expiresAt, status: 'PENDING', role: parsed.role, canCreateDelete: parsed.canCreateDelete },
+      });
+    } else {
+      await prisma.workspaceInvitation.create({
+        data: {
+          workspaceId: workspace.id,
+          email: parsed.email,
+          role: parsed.role as any,
+          canCreateDelete: parsed.canCreateDelete,
+          token,
+          expiresAt,
+        },
+      });
+    }
 
-  if (existingInvite) {
-    await prisma.workspaceInvitation.update({
-      where: { id: existingInvite.id },
-      data: { token, expiresAt, status: 'PENDING', role: parsed.role },
-    });
-  } else {
-    await prisma.workspaceInvitation.create({
-      data: {
-        workspaceId: workspace.id,
-        email: parsed.email,
+    const headerList = await headers();
+    const host = headerList.get('host') || 'localhost:3000';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const inviteUrl = `${protocol}://${host}/dashboard/invitations`;
+
+    const emailHtml = await render(
+      WorkspaceInvitationEmail({
+        workspaceName: workspace.name,
         role: parsed.role,
-        token,
-        expiresAt,
-      },
-    });
-  }
+        inviteUrl: inviteUrl,
+      })
+    );
 
-  revalidatePath(`/dashboard/settings/workspace`);
-  return { success: true };
+    await sendTransactionalEmail({
+      to: parsed.email,
+      subject: `You have been invited to join ${workspace.name}`,
+      html: emailHtml,
+    });
+
+    revalidatePath(`/dashboard/settings/workspace`);
+    revalidatePath(`/dashboard/team`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'An unexpected error occurred.' };
+  }
 }
 
 export async function getWorkspaceInvitations() {
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'ADMIN');
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  if (!hasWorkspacePermission(role, 'ADMIN')) {
+    return [];
+  }
 
   return prisma.workspaceInvitation.findMany({
     where: { workspaceId: workspace.id, status: 'PENDING' },
@@ -286,130 +380,214 @@ export async function getWorkspaceInvitations() {
   });
 }
 
+export async function resendInvitation(id: string) {
+  try {
+    const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+    if (role !== 'ADMIN' && role !== 'OWNER') {
+      return { success: false, error: 'Unauthorized.' };
+    }
+
+    const existingInvite = await prisma.workspaceInvitation.findUnique({
+      where: { id, workspaceId: workspace.id },
+    });
+
+    if (!existingInvite || existingInvite.status !== 'PENDING') {
+      return { success: false, error: 'Pending invitation not found.' };
+    }
+
+    const headerList = await headers();
+    const host = headerList.get('host') || 'localhost:3000';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const inviteUrl = `${protocol}://${host}/dashboard/invitations`;
+
+    const emailHtml = await render(
+      WorkspaceInvitationEmail({
+        workspaceName: workspace.name,
+        role: existingInvite.role,
+        inviteUrl: inviteUrl,
+      })
+    );
+
+    await sendTransactionalEmail({
+      to: existingInvite.email,
+      subject: `Reminder: You have been invited to join ${workspace.name}`,
+      html: emailHtml,
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to resend invitation.' };
+  }
+}
+
 export async function revokeInvitation(id: string) {
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, 'ADMIN');
+  try {
+    const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+    if (role !== 'ADMIN' && role !== 'OWNER') {
+      return { success: false, error: 'Unauthorized.' };
+    }
 
-  await prisma.workspaceInvitation.delete({
-    where: { id, workspaceId: workspace.id },
-  });
+    await prisma.workspaceInvitation.delete({
+      where: { id, workspaceId: workspace.id },
+    });
 
-  revalidatePath(`/dashboard/settings/workspace`);
-  return { success: true };
+    revalidatePath(`/dashboard/settings/workspace`);
+    revalidatePath(`/dashboard/team`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to revoke invitation.' };
+  }
 }
 
 export async function getPendingInvitations() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) throw new Error('Unauthorized');
 
-  return prisma.workspaceInvitation.findMany({
-    where: { email: session.user.email, status: 'PENDING' },
-    include: { workspace: true },
-    orderBy: { createdAt: 'desc' },
-  });
+    return prisma.workspaceInvitation.findMany({
+      where: { email: session.user.email, status: 'PENDING' },
+      include: { workspace: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  } catch (error) {
+    return [];
+  }
 }
 
 export async function acceptInvitation(token: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { success: false, error: 'Unauthorized' };
 
-  const invite = await prisma.workspaceInvitation.findUnique({
-    where: { token },
-  });
+    const invite = await prisma.workspaceInvitation.findUnique({
+      where: { token },
+    });
 
-  if (!invite || invite.status !== 'PENDING' || invite.expiresAt < new Date()) {
-    throw new Error('Invalid or expired invitation');
+    if (!invite || invite.status !== 'PENDING' || invite.expiresAt < new Date()) {
+      return { success: false, error: 'Invalid or expired invitation' };
+    }
+
+    if (invite.email !== session.user.email) {
+      return { success: false, error: 'This invitation was sent to a different email address' };
+    }
+
+    await prisma.$transaction([
+      prisma.userRole.upsert({
+        where: { userId_workspaceId: { userId: session.user.id, workspaceId: invite.workspaceId } },
+        update: { role: invite.role as any },
+        create: { userId: session.user.id, workspaceId: invite.workspaceId, role: invite.role as any },
+      }),
+      prisma.workspaceInvitation.update({
+        where: { id: invite.id },
+        data: { status: 'ACCEPTED' },
+      }),
+    ]);
+
+    revalidatePath('/');
+    return { success: true, workspaceId: invite.workspaceId };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'An error occurred' };
   }
-
-  if (invite.email !== session.user.email) {
-    throw new Error('This invitation was sent to a different email address');
-  }
-
-  await prisma.$transaction([
-    prisma.userRole.upsert({
-      where: { userId_workspaceId: { userId: session.user.id, workspaceId: invite.workspaceId } },
-      update: { role: invite.role },
-      create: { userId: session.user.id, workspaceId: invite.workspaceId, role: invite.role },
-    }),
-    prisma.workspaceInvitation.update({
-      where: { id: invite.id },
-      data: { status: 'ACCEPTED' },
-    }),
-  ]);
-
-  revalidatePath('/');
-  return { success: true, workspaceId: invite.workspaceId };
 }
 
 export async function rejectInvitation(token: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { success: false, error: 'Unauthorized' };
 
-  const invite = await prisma.workspaceInvitation.findUnique({
-    where: { token },
-  });
+    const invite = await prisma.workspaceInvitation.findUnique({
+      where: { token },
+    });
 
-  if (!invite || invite.status !== 'PENDING') {
-    throw new Error('Invalid invitation');
+    if (!invite || invite.status !== 'PENDING') {
+      return { success: false, error: 'Invalid invitation' };
+    }
+
+    if (invite.email !== session.user.email) {
+      return { success: false, error: 'Unauthorized' };
+    }
+
+    await prisma.workspaceInvitation.update({
+      where: { id: invite.id },
+      data: { status: 'REJECTED' },
+    });
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'An error occurred' };
   }
-
-  if (invite.email !== session.user.email) {
-    throw new Error('Unauthorized');
-  }
-
-  await prisma.workspaceInvitation.update({
-    where: { id: invite.id },
-    data: { status: 'REJECTED' },
-  });
-
-  revalidatePath('/');
-  return { success: true };
 }
 
-export async function updateMemberRole(userId: string, newRole: 'ADMIN' | 'EDITOR' | 'VIEWER') {
-  const { workspace, role: currentUserRole } = await requireActiveWorkspace();
-  checkWorkspacePermission(currentUserRole, 'ADMIN');
+export async function updateMemberRole(userId: string, newRole: 'ADMIN' | 'EDITOR', canCreateDelete?: boolean) {
+  try {
+    const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role: currentUserRole } = active;
+    if (currentUserRole !== 'ADMIN' && currentUserRole !== 'OWNER') {
+      return { success: false, error: 'Unauthorized.' };
+    }
 
-  const targetRole = await prisma.userRole.findUnique({
-    where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
-  });
+    const targetRole = await prisma.userRole.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
+    });
 
-  if (!targetRole) throw new Error('Member not found');
-  if (targetRole.role === 'OWNER') throw new Error('Cannot change OWNER role');
+    if (!targetRole) return { success: false, error: 'Member not found' };
+    if (targetRole.role === 'OWNER') return { success: false, error: 'Cannot change OWNER role' };
 
-  await prisma.userRole.update({
-    where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
-    data: { role: newRole },
-  });
+    await prisma.userRole.update({
+      where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
+      data: { 
+        role: newRole as any,
+        ...(canCreateDelete !== undefined && { canCreateDelete })
+      },
+    });
 
-  await dispatchNotification({
-    userId,
-    workspaceId: workspace.id,
-    type: NotificationTypes.WORKSPACE_ROLE_CHANGED,
-    title: 'Workspace Role Updated',
-    message: `Your role in the workspace "${workspace.name}" has been updated to ${newRole}.`,
-    actionUrl: '/dashboard',
-  });
+    await dispatchNotification({
+      userId,
+      workspaceId: workspace.id,
+      type: NotificationTypes.WORKSPACE_ROLE_CHANGED,
+      title: 'Workspace Role Updated',
+      message: `Your role in the workspace "${workspace.name}" has been updated to ${newRole}.`,
+      actionUrl: '/dashboard',
+    });
 
-  revalidatePath(`/dashboard/settings/workspace`);
-  return { success: true };
+    revalidatePath(`/dashboard/settings/workspace`);
+    revalidatePath(`/dashboard/team`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to update member role.' };
+  }
 }
 
 export async function removeMember(userId: string) {
-  const { workspace, role: currentUserRole } = await requireActiveWorkspace();
-  checkWorkspacePermission(currentUserRole, 'ADMIN');
+  try {
+    const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role: currentUserRole } = active;
+    if (currentUserRole !== 'ADMIN' && currentUserRole !== 'OWNER') {
+      return { success: false, error: 'Unauthorized.' };
+    }
 
-  const targetRole = await prisma.userRole.findUnique({
-    where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
-  });
+    const targetRole = await prisma.userRole.findUnique({
+      where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
+    });
 
-  if (!targetRole) throw new Error('Member not found');
-  if (targetRole.role === 'OWNER') throw new Error('Cannot remove OWNER from workspace');
+    if (!targetRole) return { success: false, error: 'Member not found' };
+    if (targetRole.role === 'OWNER') return { success: false, error: 'Cannot remove OWNER from workspace' };
 
-  await prisma.userRole.delete({
-    where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
-  });
+    await prisma.userRole.delete({
+      where: { userId_workspaceId: { userId, workspaceId: workspace.id } },
+    });
 
-  revalidatePath(`/dashboard/settings/workspace`);
-  return { success: true };
+    revalidatePath(`/dashboard/settings/workspace`);
+    revalidatePath(`/dashboard/team`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || 'Failed to remove member.' };
+  }
 }

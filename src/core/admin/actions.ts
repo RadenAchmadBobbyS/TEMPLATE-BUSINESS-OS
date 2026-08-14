@@ -121,7 +121,7 @@ export async function getAllWorkspaces() {
         where: { role: "OWNER" },
         include: { user: { select: { name: true, email: true } } }
       },
-      subscription: true,
+
       _count: {
         select: { members: true, websites: true }
       }
@@ -183,8 +183,8 @@ export async function getAllSubscriptions() {
   return prisma.subscription.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      workspace: {
-        select: { name: true, slug: true }
+      user: {
+        select: { name: true, email: true }
       }
     }
   });
@@ -197,7 +197,7 @@ export async function getRecentInvoices() {
     take: 50,
     include: {
       subscription: {
-        include: { workspace: { select: { name: true } } }
+        include: { user: { select: { name: true, email: true } } }
       }
     }
   });

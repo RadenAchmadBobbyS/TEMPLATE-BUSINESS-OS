@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, LayoutTemplate } from 'lucide-react';
 import { useWorkspace } from '@/core/workspaces/components/WorkspaceProvider';
 
 import { createWebsiteSchema, CreateWebsiteInput } from '@/core/websites/schemas';
@@ -32,6 +32,7 @@ export function CreateWebsiteModal({
   templateId?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<'choose' | 'form'>(templateId ? 'form' : 'choose');
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -67,6 +68,9 @@ export function CreateWebsiteModal({
 
     try {
       const newWebsite = await createWebsite(data);
+      if ('error' in newWebsite) {
+        throw new Error(newWebsite.error);
+      }
       toast({
         title: 'Success',
         description: 'Website created successfully.',
@@ -88,7 +92,15 @@ export function CreateWebsiteModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(val) => {
+        setOpen(val);
+        if (!val) {
+          setTimeout(() => setStep(templateId ? 'form' : 'choose'), 200);
+        }
+      }}
+    >
       <DialogTrigger render={children as React.ReactElement} />
       <DialogContent className="sm:max-w-[425px]">
         {!activeWorkspace ? (
@@ -113,6 +125,46 @@ export function CreateWebsiteModal({
                 Create Workspace
               </Button>
             </DialogFooter>
+          </>
+        ) : step === 'choose' ? (
+          <>
+            <DialogHeader>
+              <DialogTitle>Create Website</DialogTitle>
+              <DialogDescription>
+                How would you like to start your new website?
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <button
+                onClick={() => setStep('form')}
+                className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-6 transition-colors hover:border-[var(--signal)] hover:bg-[var(--signal)]/5"
+                style={{ borderColor: 'var(--line)' }}
+              >
+                <div className="rounded-full bg-[var(--paper)] p-3 shadow-sm border border-[var(--line)]">
+                  <Plus className="h-6 w-6 text-[var(--ink)]" />
+                </div>
+                <div className="text-center">
+                  <h4 className="font-medium text-sm text-[var(--ink)]">Blank Space</h4>
+                  <p className="text-xs text-[var(--slate)] mt-1">Start from scratch</p>
+                </div>
+              </button>
+              
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  router.push('/dashboard/templates');
+                }}
+                className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-[var(--line)] p-6 transition-colors hover:border-[var(--amber)] hover:bg-[var(--amber)]/5"
+              >
+                <div className="rounded-full bg-[var(--paper)] p-3 shadow-sm border border-[var(--line)]">
+                  <LayoutTemplate className="h-6 w-6 text-[var(--ink)]" />
+                </div>
+                <div className="text-center">
+                  <h4 className="font-medium text-sm text-[var(--ink)]">From Templates</h4>
+                  <p className="text-xs text-[var(--slate)] mt-1">Use a pre-built design</p>
+                </div>
+              </button>
+            </div>
           </>
         ) : (
           <>

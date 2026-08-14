@@ -16,13 +16,18 @@ export async function sendTransactionalEmail(options: SendEmailOptions) {
   }
 
   try {
-    const data = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM || "BusinessOS <noreply@businessos.example.com>",
       to: options.to,
       subject: options.subject,
       text: options.text || "",
       html: options.html || options.text || "",
     });
+
+    if (error) {
+      console.error("[Email Service] Resend API Error:", error);
+      throw new Error(error.message);
+    }
 
     return data;
   } catch (error) {

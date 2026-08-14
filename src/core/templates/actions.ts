@@ -6,20 +6,22 @@ import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { hasTemplateAccess } from '@/core/billing/entitlements';
 import { toBuilderDocument } from '@/core/builder/tree-normalizer';
+import { requireActiveWorkspace, requireActiveWorkspaceAction } from '@/core/workspaces/server-context';
 
 export async function applyTemplateToWebsite(templateId: string, websiteId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error('Unauthorized');
 
-  const role = await prisma.userRole.findFirst({
-    where: { userId: session.user.id },
-    include: { workspace: true },
-  });
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
 
-  if (!role) throw new Error('Workspace not found');
+  if (!['OWNER', 'ADMIN', 'EDITOR'].includes(role)) {
+    throw new Error('Unauthorized to perform this action');
+  }
 
   const website = await prisma.website.findFirst({
-    where: { id: websiteId, workspaceId: role.workspaceId },
+    where: { id: websiteId, workspaceId: workspace.id },
   });
 
   if (!website) throw new Error('Website not found or access denied');
@@ -30,7 +32,7 @@ export async function applyTemplateToWebsite(templateId: string, websiteId: stri
 
   if (!template) throw new Error('Template not found');
 
-  const hasAccess = await hasTemplateAccess(role.workspaceId, (template as any).requiredTier);
+  const hasAccess = await hasTemplateAccess(workspace.id, (template as any).requiredTier);
   if (!hasAccess) {
     throw new Error(`This template requires the ${(template as any).requiredTier} plan or higher.`);
   }

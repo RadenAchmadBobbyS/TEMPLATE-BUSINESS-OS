@@ -20,9 +20,13 @@ type Website = {
 export function WebsiteList({
   websites,
   view = 'grid',
+  role,
+  canCreateDelete = false,
 }: {
   websites: Website[];
   view?: 'grid' | 'list';
+  role?: string;
+  canCreateDelete?: boolean;
 }) {
   if (websites.length === 0) {
     return (
@@ -32,16 +36,18 @@ export function WebsiteList({
           title="No websites found"
           description="Try adjusting your filters, or create your first website to get started."
           action={
-            <Button
-              asChild
-              className={btnPrimary}
-              style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
-            >
-              <Link href="/dashboard/templates">
-                <Plus className="mr-2 h-4 w-4" />
-                New Website
-              </Link>
-            </Button>
+            (role === 'OWNER' || role === 'ADMIN' || canCreateDelete) ? (
+              <Button
+                asChild
+                className={btnPrimary}
+                style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+              >
+                <Link href="/dashboard/templates">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Website
+                </Link>
+              </Button>
+            ) : null
           }
         />
       </FadeIn>
@@ -57,7 +63,7 @@ export function WebsiteList({
     <StaggerContainer className={containerClass}>
       {websites.map((website) => (
         <StaggerItem key={website.id}>
-          <WebsiteCard website={website} view={view} />
+          <WebsiteCard website={website} view={view} role={role} canCreateDelete={canCreateDelete} />
         </StaggerItem>
       ))}
     </StaggerContainer>

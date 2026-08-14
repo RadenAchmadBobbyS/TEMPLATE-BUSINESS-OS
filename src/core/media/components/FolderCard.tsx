@@ -20,17 +20,28 @@ type Folder = {
   name: string;
 };
 
+import { useWorkspace } from "@/core/workspaces/components/WorkspaceProvider";
+
 export function FolderCard({ folder }: { folder: Folder }) {
   const { toast } = useToast();
+  const { role, canCreateDelete } = useWorkspace();
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent link click
     e.stopPropagation();
     try {
-      await deleteFolder(folder.id);
+      const res = await deleteFolder(folder.id);
+      if (!res.success) {
+        toast({
+          title: "Error",
+          description: res.error || "Failed to delete folder.",
+          variant: "destructive",
+        });
+        return;
+      }
       toast({ title: "Folder deleted" });
-    } catch {
-      toast({ title: "Failed to delete folder", variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
     }
   };
 
@@ -49,9 +60,15 @@ export function FolderCard({ folder }: { folder: Folder }) {
               </Button>
             } />
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </DropdownMenuItem>
+              {role === 'OWNER' || role === 'ADMIN' || canCreateDelete ? (
+                <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem disabled>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete (Restricted)
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

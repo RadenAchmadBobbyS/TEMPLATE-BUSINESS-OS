@@ -5,15 +5,17 @@ import { auth } from "@/core/auth/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { themeConfigSchema, ValidatedThemeConfig } from "./schemas";
-import { requireActiveWorkspace, checkWorkspacePermission } from "@/core/workspaces/server-context";
+import { requireActiveWorkspace, requireActiveWorkspaceAction, checkWorkspacePermission } from "@/core/workspaces/server-context";
 import { defaultTheme } from "./store";
 
 export async function getWebsiteTheme(websiteId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
 
-  const { workspace, role } = await requireActiveWorkspace();
-  checkWorkspacePermission(role, "VIEWER");
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+  checkWorkspacePermission(role, "EDITOR");
 
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
@@ -38,7 +40,9 @@ export async function updateWebsiteTheme(websiteId: string, data: ValidatedTheme
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
 
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
   checkWorkspacePermission(role, "EDITOR");
 
   const website = await prisma.website.findFirst({
@@ -68,7 +72,9 @@ export async function resetWebsiteTheme(websiteId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
 
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
   checkWorkspacePermission(role, "EDITOR");
 
   const website = await prisma.website.findFirst({

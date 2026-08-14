@@ -16,7 +16,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     select: { isSuperAdmin: true }
   });
   if (!user?.isSuperAdmin) {
-    redirect('/dashboard');
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--paper)] text-[var(--ink)]">
+        <ShieldAlert className="h-16 w-16 text-rose-500 mb-4" />
+        <h1 className="text-3xl font-display font-semibold mb-2">Unauthorized Access</h1>
+        <p className="text-[var(--slate)] mb-6 text-center max-w-md">
+          You do not have the required platform administrator permissions to view this area.
+        </p>
+        <Link href="/dashboard" className="px-4 py-2 bg-[var(--ink)] text-[var(--paper)] rounded-md font-medium">
+          Return to Dashboard
+        </Link>
+      </div>
+    );
   }
   return (
     <SidebarProvider>

@@ -7,9 +7,12 @@ export async function getWorkspacePlan(workspaceId: string): Promise<{
   limits: PlanLimits;
   isActive: boolean;
 }> {
-  const subscription = await prisma.subscription.findUnique({
-    where: { workspaceId },
+  const role = await prisma.userRole.findFirst({
+    where: { workspaceId, role: 'OWNER' },
+    include: { user: { include: { subscription: true } } }
   });
+
+  const subscription = role?.user?.subscription;
 
   // Default to FREE if no active subscription or if it's canceled/expired without grace period
   let tier: SubscriptionTier = 'FREE';

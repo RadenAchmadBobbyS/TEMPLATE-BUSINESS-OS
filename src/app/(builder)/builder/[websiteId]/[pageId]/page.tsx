@@ -5,10 +5,10 @@ import { BuilderClientInitializer } from "./BuilderClientInitializer";
 export default async function BuilderPage({ params }: { params: Promise<{ websiteId: string; pageId: string }> }) {
   const resolvedParams = await params;
   
-  const { nodeTree, versionNumber } = await getPageVersion(resolvedParams.pageId);
+  const { nodeTree, versionNumber, isReadOnly } = await getPageVersion(resolvedParams.pageId);
   
   return (
-    <BuilderClientInitializer document={nodeTree}>
+    <BuilderClientInitializer document={nodeTree} isReadOnly={isReadOnly}>
       <BuilderShell websiteId={resolvedParams.websiteId} pageId={resolvedParams.pageId} />
     </BuilderClientInitializer>
   );

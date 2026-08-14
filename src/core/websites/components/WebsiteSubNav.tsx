@@ -29,9 +29,11 @@ const navItems = [
   { label: 'Settings', href: 'settings', icon: Settings },
 ];
 
-export function WebsiteSubNav({ websiteId }: { websiteId: string }) {
+export function WebsiteSubNav({ websiteId, role }: { websiteId: string; role?: string }) {
   const pathname = usePathname();
   const basePath = `/dashboard/websites/${websiteId}`;
+
+
 
   return (
     <div className="bg-background overflow-x-auto border-b">

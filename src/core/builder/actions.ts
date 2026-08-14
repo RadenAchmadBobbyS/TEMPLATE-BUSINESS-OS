@@ -1,14 +1,18 @@
 'use server';
 
 import { prisma } from '@/shared/lib/prisma';
-import { requireActiveWorkspace } from '@/core/workspaces/server-context';
+import { requireActiveWorkspace, requireActiveWorkspaceAction } from '@/core/workspaces/server-context';
 import { builderDocumentSchema, BuilderDocument } from './schemas';
 import { toBuilderDocument } from './tree-normalizer';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 
 export async function getPageVersion(pageId: string) {
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
+
+  const isReadOnly = false;
 
   if (!['OWNER', 'ADMIN', 'EDITOR'].includes(role)) {
     throw new Error('Unauthorized to access builder');
@@ -39,6 +43,7 @@ export async function getPageVersion(pageId: string) {
         version: 1,
         root: { id: 'root', type: 'Container', props: {}, styles: {}, children: [] },
       } as BuilderDocument,
+      isReadOnly,
     };
   }
 
@@ -48,14 +53,17 @@ export async function getPageVersion(pageId: string) {
   return {
     versionNumber: latestVersion.versionNumber,
     nodeTree: tree as BuilderDocument,
+    isReadOnly,
   };
 }
 
 export async function savePageVersion(pageId: string, document: BuilderDocument) {
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
 
   if (!['OWNER', 'ADMIN', 'EDITOR'].includes(role)) {
-    throw new Error('Unauthorized to save page');
+    return { success: false, error: 'Unauthorized to save page' };
   }
 
   // Validate the tree structure to prevent bad data

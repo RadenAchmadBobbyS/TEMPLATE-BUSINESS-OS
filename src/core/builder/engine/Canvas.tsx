@@ -5,7 +5,8 @@ import { RenderNode } from "./RenderNode";
 import { useDroppable } from "@dnd-kit/core";
 
 export function Canvas() {
-  const { nodes, deviceMode, selectNode, previewMode } = useBuilderStore();
+  const { nodes, deviceMode, selectNode, previewMode, isReadOnly } = useBuilderStore();
+  const isPreview = previewMode || isReadOnly;
 
   const { setNodeRef, isOver } = useDroppable({
     id: "canvas-root",
@@ -31,13 +32,13 @@ export function Canvas() {
 
   return (
     <div 
-      className={`flex-1 h-full overflow-auto bg-muted/30 flex justify-center ${previewMode ? "p-0" : "p-4 md:p-8"}`}
+      className={`flex-1 h-full overflow-auto bg-muted/30 flex justify-center ${isPreview ? "p-0" : "p-4 md:p-8"}`}
       onClick={handleDeselect}
     >
       <div 
         ref={setNodeRef}
-        className={`w-full bg-background min-h-[800px] transition-all duration-300 ease-in-out shadow-sm ${getCanvasWidth()} ${!previewMode && deviceMode !== "desktop" ? "border rounded-md shadow-lg" : ""} ${isOver && !previewMode ? "ring-2 ring-primary ring-inset" : ""}`}
-        style={{ minHeight: previewMode ? "100vh" : "800px" }}
+        className={`w-full bg-background min-h-[800px] transition-all duration-300 ease-in-out shadow-sm ${getCanvasWidth()} ${!isPreview && deviceMode !== "desktop" ? "border rounded-md shadow-lg" : ""} ${isOver && !isPreview ? "ring-2 ring-primary ring-inset" : ""}`}
+        style={{ minHeight: isPreview ? "100vh" : "800px" }}
         onClick={handleDeselect}
       >
         {nodes.length === 0 ? (

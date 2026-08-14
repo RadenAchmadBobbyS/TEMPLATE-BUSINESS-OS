@@ -7,48 +7,60 @@ import { revalidatePath } from "next/cache";
 
 import { generateUploadUrl, deleteStorageObject } from "./storage";
 
-async function ensureWorkspaceAccess(actionType: "read" | "write" = "write") {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("Unauthorized");
+import { requireActiveWorkspace, requireActiveWorkspaceAction, canPerformDestructiveAction, hasWorkspacePermission } from "@/core/workspaces/server-context";
 
-  const role = await prisma.userRole.findFirst({
-    where: { userId: session.user.id },
-  });
+async function ensureWorkspaceAccess(actionType: "read" | "write" | "create_delete" | "delete" = "write") {
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role, canCreateDelete } = active;
 
-  if (!role) throw new Error("No workspace found");
-  
-  if (actionType === "write" && !["OWNER", "ADMIN", "EDITOR"].includes(role.role)) {
-    throw new Error("Unauthorized to perform this action");
+  if (actionType === "delete" || actionType === "create_delete") {
+    if (!canPerformDestructiveAction(role, canCreateDelete)) {
+      return { allowed: false, error: "Unauthorized to perform this destructive action", workspaceId: null };
+    }
+  } else if (actionType === "write") {
+    if (!hasWorkspacePermission(role, "EDITOR")) {
+      return { allowed: false, error: "Unauthorized to perform this action", workspaceId: null };
+    }
   }
-
-  return role.workspaceId;
+  
+  return { allowed: true, workspaceId: workspace.id, error: null };
 }
 
 export async function createFolder(name: string, parentId?: string | null) {
-  const workspaceId = await ensureWorkspaceAccess("write");
+  try {
+    const access = await ensureWorkspaceAccess("create_delete");
+    if (!access.allowed) return { success: false, error: access.error };
 
-  const folder = await prisma.folder.create({
-    data: {
-      name,
-      workspaceId,
-      parentId: parentId || null,
-    },
-  });
+    const folder = await prisma.folder.create({
+      data: {
+        name,
+        workspaceId: access.workspaceId!,
+        parentId: parentId || null,
+      },
+    });
 
-  revalidatePath("/dashboard/media");
-  return folder;
+    revalidatePath("/dashboard/media");
+    return { success: true, folder };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
 export async function deleteFolder(id: string) {
-  const workspaceId = await ensureWorkspaceAccess("write");
+  try {
+    const access = await ensureWorkspaceAccess("delete");
+    if (!access.allowed) return { success: false, error: access.error };
 
-  // Will cascade delete assets inside it based on DB constraints (if we set it, currently SetNull on asset folderId, wait our schema says SetNull. So assets move to root).
-  await prisma.folder.delete({
-    where: { id, workspaceId },
-  });
+    await prisma.folder.delete({
+      where: { id, workspaceId: access.workspaceId! },
+    });
 
-  revalidatePath("/dashboard/media");
-  return { success: true };
+    revalidatePath("/dashboard/media");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
 const ALLOWED_MIME_TYPES = [
@@ -66,24 +78,27 @@ export async function getUploadUrl(
   mimeType: string,
   sizeBytes: number
 ) {
-  const workspaceId = await ensureWorkspaceAccess("write");
+  try {
+    const access = await ensureWorkspaceAccess("write");
+    if (!access.allowed) return { success: false, error: access.error };
 
-  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
-    throw new Error(`Unsupported file type: ${mimeType}`);
+    if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+      return { success: false, error: `Unsupported file type: ${mimeType}` };
+    }
+
+    if (sizeBytes > MAX_FILE_SIZE) {
+      return { success: false, error: "File size exceeds 10MB limit" };
+    }
+
+    const safeName = filename.replace(/[^a-zA-Z0-9.\-_]/g, "").substring(0, 50);
+    const s3Key = `workspaces/${access.workspaceId}/${Date.now()}-${safeName}`;
+
+    const { uploadUrl, publicUrl } = await generateUploadUrl(s3Key, mimeType);
+
+    return { success: true, uploadUrl, s3Key, publicUrl };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
-
-  if (sizeBytes > MAX_FILE_SIZE) {
-    throw new Error("File size exceeds 10MB limit");
-  }
-
-  // Create deterministic, unique key: workspaceId/timestamp-filename
-  // Simple sanitize
-  const safeName = filename.replace(/[^a-zA-Z0-9.\-_]/g, "").substring(0, 50);
-  const s3Key = `workspaces/${workspaceId}/${Date.now()}-${safeName}`;
-
-  const { uploadUrl, publicUrl } = await generateUploadUrl(s3Key, mimeType);
-
-  return { uploadUrl, s3Key, publicUrl };
 }
 
 export async function finalizeUpload(data: {
@@ -96,93 +111,165 @@ export async function finalizeUpload(data: {
   fileHash: string;
   metadata?: any;
 }) {
-  const workspaceId = await ensureWorkspaceAccess("write");
+  try {
+    const access = await ensureWorkspaceAccess("write");
+    if (!access.allowed) return { success: false, error: access.error };
 
-  const asset = await prisma.asset.create({
-    data: {
-      workspaceId,
-      folderId: data.folderId || null,
-      name: data.name,
-      url: data.url,
-      type: data.type,
-      sizeBytes: data.sizeBytes,
-      s3Key: data.s3Key,
-      fileHash: data.fileHash,
-      metadata: data.metadata || {},
-    },
-  });
+    const asset = await prisma.asset.create({
+      data: {
+        workspaceId: access.workspaceId!,
+        folderId: data.folderId || null,
+        name: data.name,
+        url: data.url,
+        type: data.type,
+        sizeBytes: data.sizeBytes,
+        s3Key: data.s3Key,
+        fileHash: data.fileHash,
+        metadata: data.metadata || {},
+      },
+    });
 
-  revalidatePath("/dashboard/media");
-  return asset;
+    revalidatePath("/dashboard/media");
+    return { success: true, asset };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
-export async function updateAssetSettings(id: string, data: { name?: string, isFavorite?: boolean, metadata?: any }) {
-  const workspaceId = await ensureWorkspaceAccess("write");
+export async function updateAssetSettings(id: string, data: { name?: string, metadata?: any }) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { success: false, error: 'Unauthorized' };
 
-  const existing = await prisma.asset.findFirst({
-    where: { id, workspaceId },
-  });
+    const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
 
-  if (!existing) throw new Error("Asset not found");
+    if (!hasWorkspacePermission(role, 'EDITOR')) {
+      return { success: false, error: 'Unauthorized. Editor role required.' };
+    }
+
+    const existing = await prisma.asset.findFirst({
+      where: { id, workspaceId: workspace.id },
+    });
+    if (!existing) return { success: false, error: 'Asset not found' };
 
   const asset = await prisma.asset.update({
     where: { id },
     data: {
       name: data.name !== undefined ? data.name : existing.name,
-      isFavorite: data.isFavorite !== undefined ? data.isFavorite : existing.isFavorite,
       metadata: data.metadata !== undefined ? data.metadata : existing.metadata,
     },
   });
 
-  revalidatePath("/dashboard/media");
-  return asset;
+    revalidatePath("/dashboard/media");
+    return { success: true, asset };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function toggleFavoriteAsset(id: string) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    const access = await ensureWorkspaceAccess("write");
+    if (!access.allowed) return { success: false, error: access.error };
+
+    const existing = await prisma.asset.findFirst({
+      where: { id, workspaceId: access.workspaceId! },
+    });
+
+    if (!existing) return { success: false, error: "Asset not found" };
+
+    const favorite = await prisma.userAssetFavorite.findUnique({
+      where: {
+        userId_assetId: {
+          userId: session.user.id,
+          assetId: id,
+        }
+      }
+    });
+
+    if (favorite) {
+      await prisma.userAssetFavorite.delete({
+        where: {
+          userId_assetId: {
+            userId: session.user.id,
+            assetId: id,
+          }
+        }
+      });
+    } else {
+      await prisma.userAssetFavorite.create({
+        data: {
+          userId: session.user.id,
+          assetId: id,
+        }
+      });
+    }
+
+    revalidatePath("/dashboard/media");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
 export async function replaceAsset(id: string, formData: FormData) {
-  const workspaceId = await ensureWorkspaceAccess("write");
-  const file = formData.get("file") as File;
+  try {
+    const access = await ensureWorkspaceAccess("write");
+    if (!access.allowed) return { success: false, error: access.error };
+    const file = formData.get("file") as File;
 
-  if (!file) throw new Error("No file provided");
+    if (!file) return { success: false, error: "No file provided" };
 
-  const existing = await prisma.asset.findFirst({
-    where: { id, workspaceId },
-  });
+    const existing = await prisma.asset.findFirst({
+      where: { id, workspaceId: access.workspaceId! },
+    });
 
-  if (!existing) throw new Error("Asset not found");
+    if (!existing) return { success: false, error: "Asset not found" };
 
-  // MOCK: Delete old file from S3, upload new file.
-  const newMockUrl = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000&auto=format&fit=crop";
+    const newMockUrl = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000&auto=format&fit=crop";
 
-  const asset = await prisma.asset.update({
-    where: { id },
-    data: {
-      url: newMockUrl,
-      sizeBytes: file.size,
-      s3Key: `new-mock-s3-key-${Date.now()}`,
-      fileHash: `new-mock-hash-${Date.now()}`,
-    },
-  });
+    const asset = await prisma.asset.update({
+      where: { id },
+      data: {
+        url: newMockUrl,
+        sizeBytes: file.size,
+        s3Key: `new-mock-s3-key-${Date.now()}`,
+        fileHash: `new-mock-hash-${Date.now()}`,
+      },
+    });
 
-  revalidatePath("/dashboard/media");
-  return asset;
+    revalidatePath("/dashboard/media");
+    return { success: true, asset };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }
 
 export async function deleteAsset(id: string) {
-  const workspaceId = await ensureWorkspaceAccess("write");
+  try {
+    const access = await ensureWorkspaceAccess("delete");
+    if (!access.allowed) return { success: false, error: access.error };
 
-  const existing = await prisma.asset.findFirst({
-    where: { id, workspaceId },
-  });
+    const existing = await prisma.asset.findFirst({
+      where: { id, workspaceId: access.workspaceId! },
+    });
 
-  if (!existing) throw new Error("Asset not found");
+    if (!existing) return { success: false, error: "Asset not found" };
 
-  // Actually delete from storage
-  await deleteStorageObject(existing.s3Key);
+    await deleteStorageObject(existing.s3Key);
 
-  await prisma.asset.delete({
-    where: { id },
-  });
+    await prisma.asset.delete({
+      where: { id },
+    });
 
-  revalidatePath("/dashboard/media");
-  return { success: true };
+    revalidatePath("/dashboard/media");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
 }

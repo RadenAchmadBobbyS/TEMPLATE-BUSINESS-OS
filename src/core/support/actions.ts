@@ -4,7 +4,7 @@ import { prisma } from "@/shared/lib/prisma";
 import { auth } from "@/core/auth/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { requireActiveWorkspace, getActiveWorkspace } from "@/core/workspaces/server-context";
+import { requireActiveWorkspace, requireActiveWorkspaceAction, getActiveWorkspace } from "@/core/workspaces/server-context";
 import { createTicketSchema, addReplySchema, updateTicketStatusSchema, updateTicketPrioritySchema } from "./schemas";
 import { dispatchNotification } from "@/core/notifications/dispatcher";
 import { NotificationTypes } from "@/core/notifications/types";
@@ -52,7 +52,9 @@ export async function getMyTickets() {
 }
 
 export async function getTicket(ticketId: string) {
-  const { workspace } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace } = active;
   
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId, workspaceId: workspace.id },
@@ -73,7 +75,9 @@ export async function getTicket(ticketId: string) {
 }
 
 export async function createTicket(data: any) {
-  const { workspace } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace } = active;
   const session = await auth.api.getSession({ headers: await headers() });
   const parsed = createTicketSchema.parse(data);
 
@@ -110,7 +114,9 @@ export async function createTicket(data: any) {
 }
 
 export async function addTicketMessage(ticketId: string, data: any) {
-  const { workspace } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace } = active;
   const session = await auth.api.getSession({ headers: await headers() });
   const parsed = addReplySchema.parse(data);
 
@@ -137,7 +143,9 @@ export async function addTicketMessage(ticketId: string, data: any) {
 }
 
 export async function closeTicket(ticketId: string) {
-  const { workspace } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace } = active;
 
   const ticket = await prisma.ticket.findUnique({ where: { id: ticketId, workspaceId: workspace.id } });
   if (!ticket) throw new Error("Ticket not found");

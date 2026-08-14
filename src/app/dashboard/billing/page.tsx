@@ -3,8 +3,9 @@ import { BillingDashboard } from '@/core/billing/components/BillingDashboard';
 import { StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 import { getActiveWorkspace } from '@/core/workspaces/server-context';
 import { Button } from '@/shared/ui/button';
-import { Plus, Globe } from 'lucide-react';
+import { Plus, Globe, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/shared/ui/card';
 import { CornerMarks, PageHeader, btnPrimary } from '@/shared/ui/blueprint';
 
 export default async function BillingPage() {
@@ -48,6 +49,30 @@ export default async function BillingPage() {
             </Link>
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  if (active.role === 'EDITOR') {
+    return (
+      <div className="mx-auto mt-20 max-w-lg px-4">
+        <Card className="rounded-none border-2 border-red-600 shadow-[4px_4px_0px_theme(colors.red.600)] bg-[var(--paper)] relative">
+          <CornerMarks />
+          <CardHeader>
+            <div className="flex items-center gap-2 text-red-600 mb-2">
+              <ShieldAlert className="h-6 w-6" />
+              <CardTitle className="font-display">Unauthorized Access</CardTitle>
+            </div>
+            <CardDescription className="text-red-600/70">
+              You do not have permission to view workspace billing.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm font-data">
+              This page is restricted to Workspace Admins and Owners.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }

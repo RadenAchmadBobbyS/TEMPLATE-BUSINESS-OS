@@ -16,6 +16,17 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/shared/ui/alert";
 import { useRouter } from "next/navigation";
 import { CornerMarks } from "@/shared/ui/blueprint";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/shared/ui/alert-dialog";
 
 export function WorkspaceSettingsForm() {
   const { activeWorkspace, role } = useWorkspace();
@@ -40,7 +51,8 @@ export function WorkspaceSettingsForm() {
   const onSubmit = async (data: UpdateWorkspaceInput) => {
     if (!isAdmin) return;
     try {
-      await updateWorkspace(data);
+      const res = await updateWorkspace(data);
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to update');
       toast({ title: "Workspace updated successfully" });
     } catch (error: any) {
       toast({ title: "Failed to update", description: error.message, variant: "destructive" });
@@ -49,31 +61,29 @@ export function WorkspaceSettingsForm() {
 
   const handleArchive = async () => {
     if (!isOwner) return;
-    if (confirm("Are you sure you want to archive this workspace? You will lose access to all resources.")) {
-      setIsArchiving(true);
-      try {
-        await archiveWorkspace();
-        toast({ title: "Workspace archived" });
-        router.push("/dashboard");
-      } catch (error: any) {
-        toast({ title: "Failed to archive", description: error.message, variant: "destructive" });
-        setIsArchiving(false);
-      }
+    setIsArchiving(true);
+    try {
+      const res = await archiveWorkspace();
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to archive');
+      toast({ title: "Workspace archived" });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({ title: "Failed to archive", description: error.message, variant: "destructive" });
+      setIsArchiving(false);
     }
   };
 
   const handleDelete = async () => {
     if (!isOwner) return;
-    if (confirm("Are you sure you want to permanently delete this workspace? This action cannot be undone.")) {
-      setIsDeleting(true);
-      try {
-        await deleteWorkspace(activeWorkspace.id);
-        toast({ title: "Workspace deleted" });
-        router.push("/dashboard");
-      } catch (error: any) {
-        toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
-        setIsDeleting(false);
-      }
+    setIsDeleting(true);
+    try {
+      const res = await deleteWorkspace(activeWorkspace.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error || 'Failed to delete');
+      toast({ title: "Workspace deleted" });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
+      setIsDeleting(false);
     }
   };
 
@@ -158,12 +168,61 @@ export function WorkspaceSettingsForm() {
               </AlertDescription>
             </Alert>
             <div className="flex gap-4">
-              <Button variant="outline" onClick={handleArchive} disabled={isArchiving || isDeleting} className="rounded-none border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
-                {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Archive Workspace"}
-              </Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={isArchiving || isDeleting} className="rounded-none border-2 border-red-600 bg-red-600 hover:bg-red-700 hover:border-red-700 shadow-[2px_2px_0px_theme(colors.red.800)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all">
-                {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Workspace"}
-              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger render={
+                  <Button variant="outline" disabled={isArchiving || isDeleting} className="rounded-none border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors">
+                    {isArchiving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Archive Workspace"}
+                  </Button>
+                } />
+                <AlertDialogContent className="rounded-none border-2 border-[var(--ink)] shadow-[4px_4px_0px_var(--ink)] bg-[var(--paper)]">
+                  <AlertDialogHeader>
+                    <div className="flex items-center gap-2 text-red-600 mb-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      <AlertDialogTitle className="font-display">Archive Workspace?</AlertDialogTitle>
+                    </div>
+                    <AlertDialogDescription style={{ color: "var(--slate)" }}>
+                      Are you sure you want to archive this workspace? You will lose access to all websites and resources within it. You can restore it later from the Archived Workspaces page.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-none border-2 border-[var(--ink)]">Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleArchive}
+                      className="rounded-none border-2 border-red-600 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Archive Workspace
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger render={
+                  <Button variant="destructive" disabled={isArchiving || isDeleting} className="rounded-none border-2 border-red-600 bg-red-600 hover:bg-red-700 hover:border-red-700 shadow-[2px_2px_0px_theme(colors.red.800)] active:translate-y-[2px] active:translate-x-[2px] active:shadow-none transition-all">
+                    {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Workspace"}
+                  </Button>
+                } />
+                <AlertDialogContent className="rounded-none border-2 border-[var(--ink)] shadow-[4px_4px_0px_var(--ink)] bg-[var(--paper)]">
+                  <AlertDialogHeader>
+                    <div className="flex items-center gap-2 text-red-600 mb-2">
+                      <AlertTriangle className="h-5 w-5" />
+                      <AlertDialogTitle className="font-display">Permanently Delete Workspace?</AlertDialogTitle>
+                    </div>
+                    <AlertDialogDescription style={{ color: "var(--slate)" }}>
+                      Are you sure you want to permanently delete this workspace? <strong>This action cannot be undone.</strong> All websites, members, and assets will be removed permanently.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-none border-2 border-[var(--ink)]">Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={handleDelete}
+                      className="rounded-none border-2 border-red-600 bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Delete Workspace
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </CardContent>
         </Card>

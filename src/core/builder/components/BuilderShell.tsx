@@ -23,7 +23,7 @@ import { ComponentType } from "../schemas";
 import { componentRegistry } from "../registry";
 
 export function BuilderShell({ websiteId, pageId }: { websiteId?: string, pageId?: string }) {
-  const { addNode, moveNode, nodes, deviceMode } = useBuilderStore();
+  const { addNode, moveNode, nodes, deviceMode, isReadOnly } = useBuilderStore();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<ComponentType | null>(null);
 
@@ -127,7 +127,7 @@ export function BuilderShell({ websiteId, pageId }: { websiteId?: string, pageId
   return (
     <DndContext 
       sensors={sensors} 
-      collisionDetection={closestCorners} 
+      collisionDetection={closestCorners}  
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -135,9 +135,9 @@ export function BuilderShell({ websiteId, pageId }: { websiteId?: string, pageId
       <div className="flex flex-col h-screen w-full">
         <TopToolbar websiteId={websiteId} pageId={pageId} />
         <div className="flex flex-1 overflow-hidden relative">
-          <LeftSidebar />
+          {!isReadOnly && <LeftSidebar />}
           <Canvas />
-          <RightSidebar />
+          {!isReadOnly && <RightSidebar />}
         </div>
       </div>
 

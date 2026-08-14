@@ -4,6 +4,8 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 const BUCKET = process.env.S3_BUCKET || "businessos-media";
 const PUBLIC_URL = process.env.NEXT_PUBLIC_S3_PUBLIC_URL || "https://example.com/assets";
 
+const IS_S3_CONFIGURED = !!process.env.S3_ACCESS_KEY && !!process.env.S3_SECRET_KEY && process.env.S3_ACCESS_KEY !== "dummy";
+
 const s3 = new S3Client({
   region: process.env.S3_REGION || "us-east-1",
   endpoint: process.env.S3_ENDPOINT,
@@ -16,6 +18,14 @@ const s3 = new S3Client({
 });
 
 export async function generateUploadUrl(key: string, contentType: string, expiresIn: number = 3600) {
+  if (!IS_S3_CONFIGURED) {
+    return {
+      uploadUrl: `/api/local-upload?key=${encodeURIComponent(key)}`,
+      s3Key: key,
+      publicUrl: `/uploads/${key}`,
+    };
+  }
+
   const command = new PutObjectCommand({
     Bucket: BUCKET,
     Key: key,
@@ -32,6 +42,10 @@ export async function generateUploadUrl(key: string, contentType: string, expire
 }
 
 export async function deleteStorageObject(key: string) {
+  if (!IS_S3_CONFIGURED) {
+    return true; // Mock delete for local fallback
+  }
+
   try {
     const command = new DeleteObjectCommand({
       Bucket: BUCKET,

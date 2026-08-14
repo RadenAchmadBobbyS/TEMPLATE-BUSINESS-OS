@@ -32,7 +32,7 @@ export default async function AdminBillingPage() {
               {subscriptions.map(sub => (
                 <div key={sub.id} className="p-4 flex items-center justify-between hover:bg-muted/30">
                   <div>
-                    <p className="font-medium">{sub.workspace.name}</p>
+                    <p className="font-medium">{sub.user.name || sub.user.email}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline">{sub.planTier}</Badge>
                       <span className="text-xs text-muted-foreground">via {sub.gateway}</span>
@@ -60,7 +60,7 @@ export default async function AdminBillingPage() {
                 <div key={inv.id} className="p-4 flex items-center justify-between hover:bg-muted/30">
                   <div>
                     <p className="font-medium text-green-600 dark:text-green-400">+{formatCurrency(inv.amount)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{inv.subscription.workspace.name}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{inv.subscription.user.name || inv.subscription.user.email}</p>
                   </div>
                   <div className="text-right">
                     <Badge variant="outline" className={inv.status === 'PAID' ? 'border-green-500 text-green-600' : 'border-red-500 text-red-600'}>

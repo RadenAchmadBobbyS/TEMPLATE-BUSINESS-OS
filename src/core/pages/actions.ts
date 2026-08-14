@@ -5,16 +5,18 @@ import { auth } from "@/core/auth/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createPageSchema, pageSettingsSchema } from "./schemas";
-import { requireActiveWorkspace, checkWorkspacePermission } from "@/core/workspaces/server-context";
+import { requireActiveWorkspace, requireActiveWorkspaceAction, checkWorkspacePermission } from "@/core/workspaces/server-context";
 import { getWorkspacePlan } from "@/core/billing/entitlements";
 
-type RoleAccess = "OWNER" | "ADMIN" | "EDITOR" | "VIEWER";
+type RoleAccess = "OWNER" | "ADMIN" | "EDITOR";
 
-async function ensureWebsiteAccess(websiteId: string, requiredRole: RoleAccess = "VIEWER") {
+async function ensureWebsiteAccess(websiteId: string, requiredRole: RoleAccess = "EDITOR") {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) throw new Error("Unauthorized");
 
-  const { workspace, role } = await requireActiveWorkspace();
+  const active = await requireActiveWorkspaceAction();
+  if (!active.success) return { success: false, error: active.error };
+  const { workspace, role } = active;
   checkWorkspacePermission(role, requiredRole);
 
   const website = await prisma.website.findFirst({
@@ -26,7 +28,7 @@ async function ensureWebsiteAccess(websiteId: string, requiredRole: RoleAccess =
 }
 
 export async function getPages(websiteId: string) {
-  await ensureWebsiteAccess(websiteId, "VIEWER");
+  await ensureWebsiteAccess(websiteId, "EDITOR");
 
   return prisma.page.findMany({
     where: { websiteId, deletedAt: null },

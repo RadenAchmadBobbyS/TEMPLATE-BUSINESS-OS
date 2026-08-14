@@ -45,11 +45,11 @@ export async function POST(req: NextRequest) {
   });
 
   try {
-    // external_id is format inv-{workspaceId}-{timestamp}
-    const workspaceId = external_id.split('-')[1];
+    // external_id is format inv-{userId}-{timestamp}
+    const userId = external_id.split('-')[1];
 
     if (status === "PAID" || status === "SETTLED") {
-      if (workspaceId) {
+      if (userId) {
         // Need to figure out the tier based on the amount or custom field. 
         // We can parse the description if we included it, or use amount mapping.
         // Let's use the description mapping for simplicity: `Subscription to ${tier}`
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
         if (tier) {
           const sub = await prisma.subscription.update({
-            where: { workspaceId },
+            where: { userId },
             data: {
               gatewaySubId: external_id,
               planTier: tier as SubscriptionTier,
@@ -68,17 +68,16 @@ export async function POST(req: NextRequest) {
             }
           });
 
-          const ownerRole = await prisma.userRole.findFirst({
-            where: { workspaceId, role: "OWNER" }
+          const user = await prisma.user.findUnique({
+            where: { id: userId }
           });
           
-          if (ownerRole) {
+          if (user) {
             await dispatchNotification({
-              userId: ownerRole.userId,
-              workspaceId,
+              userId,
               type: NotificationTypes.SUBSCRIPTION_CREATED,
               title: "Subscription Activated",
-              message: `Your workspace has successfully upgraded to the ${tier} plan via Xendit.`,
+              message: `Your account has successfully upgraded to the ${tier} plan via Xendit.`,
               actionUrl: "/dashboard/billing",
               actionText: "View Billing",
             });
@@ -86,27 +85,20 @@ export async function POST(req: NextRequest) {
         }
       }
     } else if (status === "EXPIRED" || status === "FAILED") {
-      if (workspaceId) {
+      if (userId) {
         const sub = await prisma.subscription.update({
-          where: { workspaceId },
+          where: { userId },
           data: { status: "PAST_DUE" }
         });
 
-        const ownerRole = await prisma.userRole.findFirst({
-          where: { workspaceId: sub.workspaceId, role: "OWNER" }
+        await dispatchNotification({
+          userId: sub.userId,
+          type: NotificationTypes.PAYMENT_FAILED,
+          title: "Payment Failed",
+          message: `We couldn't process your payment via Xendit. Your subscription is now PAST_DUE.`,
+          actionUrl: "/dashboard/billing",
+          actionText: "Update Payment Method",
         });
-
-        if (ownerRole) {
-          await dispatchNotification({
-            userId: ownerRole.userId,
-            workspaceId: sub.workspaceId,
-            type: NotificationTypes.PAYMENT_FAILED,
-            title: "Payment Failed",
-            message: `We couldn't process your payment via Xendit. Your subscription is now PAST_DUE.`,
-            actionUrl: "/dashboard/billing",
-            actionText: "Update Payment Method",
-          });
-        }
       }
     }
   } catch (error) {

@@ -302,6 +302,7 @@ model Redirect {
   source      String
   destination String
   permanent   Boolean  @default(true)
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
   website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
@@ -730,6 +731,7 @@ model AnalyticsVisitor {
   events   AnalyticsEvent[]
 
   @@index([websiteId])
+  @@index([lastSeenAt])
 }
 
 model AnalyticsSession {
@@ -756,6 +758,7 @@ model AnalyticsSession {
 
   @@index([websiteId, startedAt])
   @@index([visitorId])
+  @@index([startedAt])
 }
 
 model AnalyticsEvent {
@@ -775,6 +778,7 @@ model AnalyticsEvent {
 
   @@index([websiteId, eventName, createdAt])
   @@index([sessionId])
+  @@index([createdAt])
 }
 
 model AnalyticsGoal {

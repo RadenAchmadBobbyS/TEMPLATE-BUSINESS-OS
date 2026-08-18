@@ -49,18 +49,15 @@ export function WebsiteSettingsModal({ website, open, onOpenChange }: WebsiteSet
   async function onSubmit(data: UpdateWebsiteInput) {
     setIsLoading(true);
     try {
-      await updateWebsite(website.id, data);
-      toast({
-        title: "Success",
-        description: "Website settings updated successfully.",
-      });
-      onOpenChange(false);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update settings.",
-        type: "error",
-      });
+      const res = await updateWebsite(website.id, data);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Website settings updated successfully." });
+        onOpenChange(false);
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to update settings.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

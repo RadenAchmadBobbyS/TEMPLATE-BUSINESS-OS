@@ -27,8 +27,10 @@ export function EntryList({ model, entries }: { model: any, entries: any[] }) {
   const handleCreate = async () => {
     setIsCreating(true);
     try {
-      const entry = await createCmsEntry(model.id);
-      router.push(`/dashboard/websites/${model.websiteId}/cms/${model.id}/${entry.id}`);
+      const res = await createCmsEntry(model.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
+      const entry = res.entry;
+      router.push(`/dashboard/websites/${model.websiteId}/cms/${model.id}/${entry?.id}`);
     } catch (error: any) {
       toast({ title: "Failed to create entry", description: error.message, variant: "destructive" });
       setIsCreating(false);
@@ -38,7 +40,8 @@ export function EntryList({ model, entries }: { model: any, entries: any[] }) {
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this entry?")) {
       try {
-        await deleteCmsEntry(id);
+        const res = await deleteCmsEntry(id);
+        if (res && 'success' in res && !res.success) throw new Error(res.error);
         toast({ title: "Entry deleted" });
       } catch {
         toast({ title: "Delete Failed", variant: "destructive" });

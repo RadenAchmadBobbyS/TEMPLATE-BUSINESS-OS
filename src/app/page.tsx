@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FadeIn, Reveal, StaggerContainer, StaggerItem } from '@/shared/ui/motion';
 import { GridBackdrop, CornerMarks, BlueprintLogo } from '@/shared/ui/blueprint';
+import { ThemeToggle } from '@/core/dashboard/components/ThemeToggle';
 
 const features = [
   {
@@ -129,6 +130,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               href="/login"
               className="hidden text-sm font-medium sm:inline-flex"

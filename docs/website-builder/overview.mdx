@@ -1,0 +1,21 @@
+---
+title: "Builder Overview"
+description: "Visual drag-and-drop page builder architecture."
+section: "Website Builder"
+---
+
+## What is the Builder?
+The Website Builder allows visual editing of pages and sections using a drag-and-drop canvas.
+
+## Where is it?
+The builder UI is located at `/builder/[websiteId]/[pageId]`.
+
+## How does it work?
+1. The builder maintains a state tree (`nodeTree`).
+2. Changes are saved as a `PageVersion` in PostgreSQL (stored as JSON).
+3. The public rendering engine (`/p/[websiteSlug]/[[...slug]]`) reads the published `PageVersion` and dynamically renders the React DOM.
+
+<Callout type="info">
+The actual rendering happens dynamically based on the JSON `nodeTree` structure.
+</Callout>
+

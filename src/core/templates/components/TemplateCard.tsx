@@ -200,7 +200,10 @@ export function TemplateCard({ template, userTier }: { template: Template; userT
             onClick={async () => {
               setIsApplying(true);
               try {
-                await applyTemplateToWebsite(applyTo, template.id);
+                const res = await applyTemplateToWebsite(applyTo, template.id);
+                if (res && 'success' in res && !res.success) {
+                  throw new Error(res.error);
+                }
                 toast({
                   title: 'Template Applied',
                   description: 'Template has been successfully applied to your website.',

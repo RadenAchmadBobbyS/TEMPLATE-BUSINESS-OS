@@ -139,7 +139,7 @@ export async function createWebsite(data: {
   templateId?: string;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const parsed = createWebsiteSchema.parse(data);
   const active = await requireActiveWorkspaceAction();
@@ -295,7 +295,7 @@ export async function updateWebsite(
   data: { name: string; domain?: string; slug?: string; description?: string },
 ) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const parsed = updateWebsiteSchema.parse(data);
   const active = await requireActiveWorkspaceAction();
@@ -309,7 +309,7 @@ export async function updateWebsite(
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   let newSlug = website.slug;
   if (parsed.slug && parsed.slug !== website.slug) {
@@ -332,7 +332,7 @@ export async function updateWebsite(
 
 export async function archiveWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -344,7 +344,7 @@ export async function archiveWebsite(id: string) {
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   const archived = await prisma.website.update({
     where: { id },
@@ -357,7 +357,7 @@ export async function archiveWebsite(id: string) {
 
 export async function applyTemplateToWebsite(websiteId: string, templateId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -369,16 +369,16 @@ export async function applyTemplateToWebsite(websiteId: string, templateId: stri
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   const template = await prisma.template.findUnique({
     where: { id: templateId },
   });
-  if (!template) throw new Error('Template not found');
+  if (!template) return { success: false, error: 'Template not found' };
 
   const hasAccess = await hasTemplateAccess(workspace.id, (template as any).requiredTier);
   if (!hasAccess) {
-    throw new Error(`This template requires the ${(template as any).requiredTier} plan or higher.`);
+    return { success: false, error: `This template requires the ${(template as any).requiredTier} plan or higher.` };
   }
 
   const templateData = templateDataSchema.parse(template.defaultTree || {});
@@ -498,7 +498,7 @@ export async function applyTemplateToWebsite(websiteId: string, templateId: stri
 
 export async function deleteWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -510,7 +510,7 @@ export async function deleteWebsite(id: string) {
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   await prisma.website.delete({
     where: { id },
@@ -522,7 +522,7 @@ export async function deleteWebsite(id: string) {
 
 export async function duplicateWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -534,7 +534,7 @@ export async function duplicateWebsite(id: string) {
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   await assertWebsiteQuotaAvailable(workspace.id, 1);
 
@@ -558,7 +558,7 @@ export async function duplicateWebsite(id: string) {
 
 export async function restoreWebsite(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -570,11 +570,11 @@ export async function restoreWebsite(id: string) {
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   const quota = await getWebsiteQuotaUsage(workspace.id);
   if (quota.used >= quota.limit) {
-    throw new Error('Website limit reached. Archived websites still count toward your plan limit.');
+    return { success: false, error: 'Website limit reached. Archived websites still count toward your plan limit.' };
   }
 
   const restored = await prisma.website.update({
@@ -588,7 +588,7 @@ export async function restoreWebsite(id: string) {
 
 export async function updateWebsiteSettings(id: string, data: any) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -600,7 +600,7 @@ export async function updateWebsiteSettings(id: string, data: any) {
   const website = await prisma.website.findFirst({
     where: { id, workspaceId: workspace.id },
   });
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   const updated = await prisma.website.update({
     where: { id },
@@ -616,7 +616,7 @@ export async function updateWebsiteSettings(id: string, data: any) {
 
 export async function exportWebsiteToTemplate(websiteId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -645,7 +645,7 @@ export async function exportWebsiteToTemplate(websiteId: string) {
     },
   });
 
-  if (!website) throw new Error('Website not found');
+  if (!website) return { success: false, error: 'Website not found' };
 
   const settings: any = website.settings || {};
 

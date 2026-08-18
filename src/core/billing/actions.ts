@@ -91,11 +91,11 @@ export async function changeSubscriptionTier(
   currency: string = 'USD',
 ) {
   const access = await getWorkspaceAccess('OWNER');
-  if ('error' in access) throw new Error(access.error as string);
+  if ('error' in access) return { success: false, error: access.error as string };
   const { workspaceId, ownerId } = access;
 
   const currentSub = await prisma.subscription.findUnique({ where: { userId: ownerId } });
-  if (!currentSub) throw new Error('Subscription not found');
+  if (!currentSub) return { success: false, error: 'Subscription not found' };
 
   const currentRank = TIER_RANK[currentSub.planTier];
   const newRank = TIER_RANK[tier];
@@ -106,16 +106,12 @@ export async function changeSubscriptionTier(
     const targetLimits = PLAN_LIMITS[tier];
 
     if (websitesUsage.used > targetLimits.maxWebsites) {
-      throw new Error(
-        `Cannot downgrade: You have ${websitesUsage.used} websites, but ${tier} only allows ${targetLimits.maxWebsites}. Archived websites still count toward your plan limit.`,
-      );
+      return { success: false, error: `Cannot downgrade: You have ${websitesUsage.used} websites, but ${tier} only allows ${targetLimits.maxWebsites}. Archived websites still count toward your plan limit.` };
     }
 
     const teamUsage = await getRemainingQuota(workspaceId, 'team_members');
     if (teamUsage.used > targetLimits.maxTeamMembers) {
-      throw new Error(
-        `Cannot downgrade: You have ${teamUsage.used} team members, but ${tier} only allows ${targetLimits.maxTeamMembers}. Please remove some team members first.`,
-      );
+      return { success: false, error: `Cannot downgrade: You have ${teamUsage.used} team members, but ${tier} only allows ${targetLimits.maxTeamMembers}. Please remove some team members first.` };
     }
   }
 
@@ -128,26 +124,24 @@ export async function changeSubscriptionTier(
       successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?success=true`,
       cancelUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/billing?canceled=true`,
     });
-    return { url: result.url };
+    return { success: true, url: result.url };
   } catch (error: any) {
     console.error(`[Billing] Failed to create checkout session with ${gateway}:`, error);
-    throw new Error(
-      error.message || `The payment gateway ${gateway} is currently unavailable or misconfigured.`,
-    );
+    return { success: false, error: error.message || `The payment gateway ${gateway} is currently unavailable or misconfigured.` };
   }
 }
 
 export async function cancelSubscription() {
   const access = await getWorkspaceAccess('OWNER');
-  if ('error' in access) throw new Error(access.error as string);
+  if ('error' in access) return { success: false, error: access.error as string };
   const { ownerId } = access;
 
   const currentSub = await prisma.subscription.findUnique({ where: { userId: ownerId } });
-  if (!currentSub) throw new Error('Subscription not found');
+  if (!currentSub) return { success: false, error: 'Subscription not found' };
 
   // State Machine Validation
   if (currentSub.status === 'CANCELED' || currentSub.status === 'EXPIRED') {
-    throw new Error('Subscription is already canceled or expired');
+    return { success: false, error: 'Subscription is already canceled or expired' };
   }
 
   // Tell Provider
@@ -175,13 +169,13 @@ export async function cancelSubscription() {
   });
 
   revalidatePath('/dashboard/billing');
-  return updated;
+  return { success: true, updated };
 }
 
 export async function retryFailedInvoice(invoiceId: string, gateway: string = 'STRIPE') {
-  throw new Error("Retrying invoices is not supported by your payment gateway. Please update your payment method or create a new subscription.");
+  return { success: false, error: "Retrying invoices is not supported by your payment gateway. Please update your payment method or create a new subscription." };
 }
 
 export async function processRefund(invoiceId: string) {
-  throw new Error("Refunding invoices is not supported directly from the dashboard. Please contact support.");
+  return { success: false, error: "Refunding invoices is not supported directly from the dashboard. Please contact support." };
 }

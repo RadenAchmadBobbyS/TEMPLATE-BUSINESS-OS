@@ -43,14 +43,16 @@ export default function NewTicketPage() {
     const formData = new FormData(e.currentTarget);
 
     try {
-      const ticket = await createTicket({
+      const res = await createTicket({
         subject: formData.get('subject'),
         category: formData.get('category'),
         priority,
         message: formData.get('message'),
       });
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
+      const ticket = res.ticket;
       toast({ title: 'Ticket created successfully!' });
-      router.push(`/support/${ticket.id}`);
+      router.push(`/support/${ticket?.id}`);
     } catch (error: any) {
       toast({
         title: 'Failed to create ticket',

@@ -1,0 +1,24 @@
+---
+title: "Billing & Subscriptions"
+description: "SaaS monetization system."
+section: "Billing"
+---
+
+## What is Billing?
+The billing engine supports tiered subscriptions (FREE, STARTER, PRO, BUSINESS, ENTERPRISE).
+
+## Where is it?
+- Workspace Billing: `/dashboard/billing`
+- Admin Metrics: `/admin/billing`
+
+## Providers Supported
+The codebase verifies support for:
+- **Stripe** (`/api/webhooks/stripe`)
+- **Midtrans** (`/api/webhooks/midtrans`)
+- **Xendit** (`/api/webhooks/xendit`)
+
+## How does it work?
+1. A `Subscription` record is tied to the `User`.
+2. Payment provider webhooks trigger updates to the subscription `status` (e.g., TRIALING, ACTIVE, PAST_DUE).
+3. Entitlements limit resources (e.g., max websites) based on the `SubscriptionTier`.
+

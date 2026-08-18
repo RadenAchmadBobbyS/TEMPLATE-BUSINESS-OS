@@ -19,9 +19,13 @@ export function WorkspaceList({ workspaces }: { workspaces: any[] }) {
   const handleSwitch = async (id: string) => {
     setProcessingId(id);
     try {
-      await setActiveWorkspace(id);
-      toast({ title: "Workspace switched" });
-      router.push("/dashboard");
+      const res = await setActiveWorkspace(id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Failed to switch", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Workspace switched" });
+        router.push("/dashboard");
+      }
     } catch (e: any) {
       toast({ title: "Failed to switch", description: e.message, variant: "destructive" });
     } finally {
@@ -32,9 +36,13 @@ export function WorkspaceList({ workspaces }: { workspaces: any[] }) {
   const handleRestore = async (id: string) => {
     setProcessingId(id);
     try {
-      await restoreWorkspace(id);
-      toast({ title: "Workspace restored" });
-      router.refresh();
+      const res = await restoreWorkspace(id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Failed to restore", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Workspace restored" });
+        router.refresh();
+      }
     } catch (e: any) {
       toast({ title: "Failed to restore", description: e.message, variant: "destructive" });
     } finally {
@@ -46,9 +54,13 @@ export function WorkspaceList({ workspaces }: { workspaces: any[] }) {
     if (!confirm("Are you sure you want to completely delete this workspace? This cannot be undone.")) return;
     setProcessingId(id);
     try {
-      await deleteWorkspace(id);
-      toast({ title: "Workspace deleted" });
-      router.refresh();
+      const res = await deleteWorkspace(id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Failed to delete", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Workspace deleted" });
+        router.refresh();
+      }
     } catch (e: any) {
       toast({ title: "Failed to delete", description: e.message, variant: "destructive" });
     } finally {

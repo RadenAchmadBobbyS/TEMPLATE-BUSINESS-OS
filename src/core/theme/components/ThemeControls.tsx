@@ -55,7 +55,8 @@ export function ThemeControls({ websiteId }: { websiteId: string }) {
   const handleReset = async () => {
     setIsResetting(true);
     try {
-      await resetWebsiteTheme(websiteId);
+      const res = await resetWebsiteTheme(websiteId);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       resetTheme(); // Client side update to fallback
       toast({ title: "Theme reset to default" });
     } catch (e: any) {
@@ -68,7 +69,8 @@ export function ThemeControls({ websiteId }: { websiteId: string }) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await updateWebsiteTheme(websiteId, config);
+      const res = await updateWebsiteTheme(websiteId, config);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Theme Saved", description: "Your CSS variables have been published." });
     } catch (e: any) {
       toast({ title: "Save failed", description: e.message, variant: "destructive" });

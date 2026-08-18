@@ -1,0 +1,23 @@
+---
+title: "Introduction"
+description: "Welcome to Business OS."
+section: "Getting Started"
+---
+
+## What is Business OS?
+
+Business OS is a B2B SaaS platform template that provides workspace management, website publishing, media libraries, analytics, billing, and support ticketing in one unified system.
+
+## Where is it?
+The core dashboard is accessible at `/dashboard`.
+
+## What can the user do?
+- Manage workspaces
+- Build and publish websites
+- Track analytics
+- Handle support tickets
+- Manage subscriptions via Stripe/Midtrans/Xendit
+
+## How does it work?
+The system is built on Next.js App Router and Prisma. Multi-tenancy is handled via the `Workspace` model, where users access resources based on their assigned `Role`.
+

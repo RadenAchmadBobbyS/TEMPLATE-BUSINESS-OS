@@ -32,7 +32,8 @@ export function DynamicForm({ model, entry }: { model: any, entry: any }) {
     setIsLoading(true);
     const targetStatus = newStatus || status;
     try {
-      await updateCmsEntry(entry.id, { data, status: targetStatus });
+      const res = await updateCmsEntry(entry.id, { data, status: targetStatus });
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       setStatus(targetStatus);
       toast({ title: "Entry saved successfully" });
       router.refresh();

@@ -20,7 +20,7 @@ export async function getMyNotifications() {
 
 export async function markNotificationAsRead(notificationId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("Unauthorized");
+  if (!session) return { success: false, error: "Unauthorized" };
 
   const updated = await prisma.notification.updateMany({
     where: { 
@@ -31,7 +31,7 @@ export async function markNotificationAsRead(notificationId: string) {
   });
 
   revalidatePath("/dashboard");
-  return updated;
+  return { success: true, updated };
 }
 
 export async function createSystemNotification(userId: string, title: string, message: string, type: string = "INFO") {

@@ -25,7 +25,8 @@ export function DomainManager({ websiteId, domains }: { websiteId: string, domai
     if (!hostname) return;
     setIsAdding(true);
     try {
-      await addDomain(websiteId, hostname);
+      const res = await addDomain(websiteId, hostname);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       setHostname("");
       toast({ title: "Domain added successfully." });
     } catch (error: any) {
@@ -38,7 +39,8 @@ export function DomainManager({ websiteId, domains }: { websiteId: string, domai
   const handleRemove = async (id: string) => {
     if (!confirm("Are you sure you want to remove this domain? Traffic will immediately stop routing here.")) return;
     try {
-      await removeDomain(id);
+      const res = await removeDomain(id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Domain removed." });
     } catch {
       toast({ title: "Failed to remove domain", variant: "destructive" });
@@ -48,7 +50,8 @@ export function DomainManager({ websiteId, domains }: { websiteId: string, domai
   const handleVerify = async (id: string) => {
     setVerifyingId(id);
     try {
-      await verifyDomain(id);
+      const res = await verifyDomain(id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Domain verified & SSL provisioned!" });
     } catch (error: any) {
       toast({ title: "Verification failed", description: error.message || "Check your DNS records and try again.", variant: "destructive" });
@@ -60,7 +63,8 @@ export function DomainManager({ websiteId, domains }: { websiteId: string, domai
   const handleSetPrimary = async (id: string) => {
     setSettingPrimaryId(id);
     try {
-      await setPrimaryDomain(id);
+      const res = await setPrimaryDomain(id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Primary domain updated." });
     } catch (error: any) {
       toast({ title: "Failed to set primary domain", description: error.message, variant: "destructive" });

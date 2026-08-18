@@ -136,7 +136,7 @@ export async function createWorkspace(data: any) {
 
 export async function updateWorkspace(data: any) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -167,7 +167,7 @@ export async function updateWorkspace(data: any) {
 
 export async function archiveWorkspace() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const active = await requireActiveWorkspaceAction();
   if (!active.success) return { success: false, error: active.error };
@@ -190,7 +190,7 @@ export async function archiveWorkspace() {
 
 export async function restoreWorkspace(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   // Need to find if user is OWNER, but workspace might be archived so requireActiveWorkspace won't work
   const userRole = await prisma.userRole.findUnique({
@@ -210,7 +210,7 @@ export async function restoreWorkspace(id: string) {
 
 export async function deleteWorkspace(id: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   const userRole = await prisma.userRole.findUnique({
     where: { userId_workspaceId: { userId: session.user.id, workspaceId: id } },
@@ -232,7 +232,7 @@ export async function deleteWorkspace(id: string) {
 
 export async function setActiveWorkspace(workspaceId: string) {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error('Unauthorized');
+  if (!session) return { success: false, error: 'Unauthorized' };
 
   // Verify access
   const role = await prisma.userRole.findUnique({
@@ -241,7 +241,7 @@ export async function setActiveWorkspace(workspaceId: string) {
   });
 
   if (!role || role.workspace.deletedAt || role.workspace.isArchived) {
-    throw new Error('Workspace not found or access denied');
+    return { success: false, error: 'Workspace not found or access denied' };
   }
 
   const cookieStore = await cookies();

@@ -30,7 +30,8 @@ export function NotificationNav() {
 
   const handleRead = async (id: string, url: string | null) => {
     try {
-      await markNotificationAsRead(id);
+      const res = await markNotificationAsRead(id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
       if (url) {
         window.location.href = url;
@@ -42,7 +43,10 @@ export function NotificationNav() {
 
   const handleMarkAllRead = async () => {
     try {
-      await Promise.all(unreadNotifications.map(n => markNotificationAsRead(n.id)));
+      await Promise.all(unreadNotifications.map(async n => {
+        const res = await markNotificationAsRead(n.id);
+        if (res && 'success' in res && !res.success) throw new Error(res.error);
+      }));
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     } catch (err) {
       console.error(err);

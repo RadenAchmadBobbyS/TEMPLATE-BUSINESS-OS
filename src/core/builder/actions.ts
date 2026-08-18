@@ -71,7 +71,7 @@ export async function savePageVersion(pageId: string, document: BuilderDocument)
     builderDocumentSchema.parse(document);
   } catch (error) {
     console.error('Zod Validation Error:', error);
-    throw new Error('Invalid builder document structure');
+    return { success: false, error: 'Invalid builder document structure' };
   }
 
   const page = await prisma.page.findUnique({
@@ -80,7 +80,7 @@ export async function savePageVersion(pageId: string, document: BuilderDocument)
   });
 
   if (!page || page.website.workspaceId !== workspace.id) {
-    throw new Error('Page not found or unauthorized');
+    return { success: false, error: 'Page not found or unauthorized' };
   }
 
   const nextVersionNumber = (page.versions[0]?.versionNumber || 0) + 1;

@@ -68,7 +68,8 @@ export function ModelBuilder({ websiteId, models }: { websiteId: string, models:
 
     setIsLoading(true);
     try {
-      await createCmsModel(websiteId, { name, schema });
+      const res = await createCmsModel(websiteId, { name, schema });
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Collection created" });
       setIsCreateOpen(false);
       setName("");
@@ -82,7 +83,8 @@ export function ModelBuilder({ websiteId, models }: { websiteId: string, models:
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure? This will delete all entries in this collection forever.")) {
       try {
-        await deleteCmsModel(id);
+        const res = await deleteCmsModel(id);
+        if (res && 'success' in res && !res.success) throw new Error(res.error);
         toast({ title: "Collection deleted" });
       } catch (error: any) {
         toast({ title: "Error", description: error.message, variant: "destructive" });

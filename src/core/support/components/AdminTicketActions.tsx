@@ -22,7 +22,8 @@ export function AdminTicketActions({ ticket }: { ticket: any }) {
     
     setLoading(true);
     try {
-      await adminReplyToTicket(ticket.id, { messageBody: message, isInternalNote: isInternal });
+      const res = await adminReplyToTicket(ticket.id, { messageBody: message, isInternalNote: isInternal });
+      if (res && 'success' in res && !res.success) throw new Error((res as any).error);
       setMessage("");
       toast({ title: isInternal ? "Internal note added" : "Reply sent to user" });
     } catch (error: any) {
@@ -34,7 +35,8 @@ export function AdminTicketActions({ ticket }: { ticket: any }) {
 
   async function handleStatusChange(status: string) {
     try {
-      await updateTicketStatus(ticket.id, status as TicketStatus);
+      const res = await updateTicketStatus(ticket.id, status as TicketStatus);
+      if (res && 'success' in res && !res.success) throw new Error((res as any).error);
       toast({ title: "Status updated" });
     } catch (error: any) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
@@ -43,7 +45,8 @@ export function AdminTicketActions({ ticket }: { ticket: any }) {
 
   async function handlePriorityChange(priority: string) {
     try {
-      await updateTicketPriority(ticket.id, priority as TicketPriority);
+      const res = await updateTicketPriority(ticket.id, priority as TicketPriority);
+      if (res && 'success' in res && !res.success) throw new Error((res as any).error);
       toast({ title: "Priority updated" });
     } catch (error: any) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });

@@ -4,9 +4,7 @@ import { prisma } from "@/shared/lib/prisma";
 import { auth } from "@/core/auth/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-
-import { generateUploadUrl, deleteStorageObject } from "./storage";
-
+import { generateUploadUrl, deleteStorageObject, uploadStorageObject } from "./storage";
 import { requireActiveWorkspace, requireActiveWorkspaceAction, canPerformDestructiveAction, hasWorkspacePermission } from "@/core/workspaces/server-context";
 
 async function ensureWorkspaceAccess(actionType: "read" | "write" | "create_delete" | "delete" = "write") {
@@ -231,15 +229,23 @@ export async function replaceAsset(id: string, formData: FormData) {
 
     if (!existing) return { success: false, error: "Asset not found" };
 
-    const newMockUrl = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=1000&auto=format&fit=crop";
+    if (existing.s3Key) {
+      await deleteStorageObject(existing.s3Key).catch(console.error);
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const newS3Key = `${access.workspaceId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    
+    const { s3Key, publicUrl } = await uploadStorageObject(newS3Key, buffer, file.type);
 
     const asset = await prisma.asset.update({
       where: { id },
       data: {
-        url: newMockUrl,
+        url: publicUrl,
         sizeBytes: file.size,
-        s3Key: `new-mock-s3-key-${Date.now()}`,
-        fileHash: `new-mock-hash-${Date.now()}`,
+        s3Key,
+        fileHash: `s3-hash-${Date.now()}`,
       },
     });
 

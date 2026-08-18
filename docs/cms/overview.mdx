@@ -1,0 +1,19 @@
+---
+title: "CMS Overview"
+description: "Headless content management system."
+section: "Cms"
+---
+
+## What is the CMS?
+The CMS allows users to define custom data models and create dynamic entries for their websites.
+
+## Where is it?
+- Models List: `/dashboard/websites/[websiteId]/cms`
+- Model Details: `/dashboard/websites/[websiteId]/cms/[modelId]`
+- Entry Editor: `/dashboard/websites/[websiteId]/cms/[modelId]/[entryId]`
+
+## How does it work?
+The CMS relies on two primary database tables:
+1. `CmsModel`: Defines the schema (e.g., Blog Post, Product) as JSON.
+2. `CmsEntry`: Stores the actual content instances using the `CmsEntryStatus` (DRAFT, PUBLISHED, SCHEDULED).
+

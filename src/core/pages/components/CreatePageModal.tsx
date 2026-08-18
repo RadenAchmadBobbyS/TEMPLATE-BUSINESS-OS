@@ -34,7 +34,8 @@ export function CreatePageModal({ websiteId, pages }: { websiteId: string; pages
   async function onSubmit(data: CreatePageInput) {
     setIsLoading(true);
     try {
-      await createPage(websiteId, data);
+      const res = await createPage(websiteId, data);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: 'Page created successfully' });
       setOpen(false);
       form.reset();

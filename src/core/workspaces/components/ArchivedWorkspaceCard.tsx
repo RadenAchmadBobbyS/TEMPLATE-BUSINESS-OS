@@ -27,8 +27,12 @@ export function ArchivedWorkspaceCard({ workspace }: { workspace: any }) {
   const handleRestore = async () => {
     setIsRestoring(true);
     try {
-      await restoreWorkspace(workspace.id);
-      toast({ title: "Workspace Restored", description: `${workspace.name} has been unarchived.` });
+      const res = await restoreWorkspace(workspace.id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Failed to restore", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Workspace Restored", description: `${workspace.name} has been unarchived.` });
+      }
     } catch (error: any) {
       toast({ title: "Failed to restore", description: error.message, variant: "destructive" });
     } finally {
@@ -39,8 +43,12 @@ export function ArchivedWorkspaceCard({ workspace }: { workspace: any }) {
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      await deleteWorkspace(workspace.id);
-      toast({ title: "Workspace Deleted", description: `${workspace.name} has been permanently deleted.` });
+      const res = await deleteWorkspace(workspace.id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Failed to delete", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Workspace Deleted", description: `${workspace.name} has been permanently deleted.` });
+      }
     } catch (error: any) {
       toast({ title: "Failed to delete", description: error.message, variant: "destructive" });
     } finally {

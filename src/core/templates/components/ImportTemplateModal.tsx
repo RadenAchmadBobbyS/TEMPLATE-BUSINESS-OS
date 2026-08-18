@@ -32,7 +32,10 @@ export function ImportTemplateModal({ children }: { children: React.ReactNode })
         const jsonString = event.target?.result as string;
         
         // Let the server action validate and insert
-        await importCustomTemplate(jsonString);
+        const res = await importCustomTemplate(jsonString);
+        if (res && 'success' in res && !res.success) {
+          throw new Error(res.error);
+        }
         
         toast({
           title: "Template Imported",

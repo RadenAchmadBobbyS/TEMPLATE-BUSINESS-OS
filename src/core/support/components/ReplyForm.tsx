@@ -18,7 +18,8 @@ export function ReplyForm({ ticketId }: { ticketId: string }) {
     
     setLoading(true);
     try {
-      await addTicketMessage(ticketId, { messageBody: message, isInternalNote: false });
+      const res = await addTicketMessage(ticketId, { messageBody: message, isInternalNote: false });
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       setMessage("");
       toast({ title: "Reply sent" });
     } catch (error: any) {

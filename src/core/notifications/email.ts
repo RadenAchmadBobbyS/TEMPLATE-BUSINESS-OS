@@ -1,6 +1,6 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "re_mock_123");
+const resend = new Resend(process.env.RESEND_API_KEY || "");
 
 export interface SendEmailOptions {
   to: string;
@@ -11,8 +11,7 @@ export interface SendEmailOptions {
 
 export async function sendTransactionalEmail(options: SendEmailOptions) {
   if (!process.env.RESEND_API_KEY) {
-    console.log("[Email Service] MOCK SEND to", options.to, ":", options.subject);
-    return { id: `mock_email_${Date.now()}` };
+    throw new Error("RESEND_API_KEY is not configured.");
   }
 
   try {

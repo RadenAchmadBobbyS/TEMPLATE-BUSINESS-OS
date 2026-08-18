@@ -102,6 +102,7 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
     setLoadingTier(tier);
     try {
       const result = await changeSubscriptionTier(tier, gateway, currency);
+      if (result && 'success' in result && !result.success) throw new Error(result.error);
       if (result && result.url) {
         window.location.href = result.url;
       } else {
@@ -118,7 +119,8 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
     if (!confirm("Are you sure you want to cancel? You will lose access to premium features immediately.")) return;
     setIsCanceling(true);
     try {
-      await cancelSubscription();
+      const res = await cancelSubscription();
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Subscription canceled" });
     } catch (error: any) {
       toast({ title: "Failed to cancel", variant: "destructive" });
@@ -130,7 +132,8 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
   const handleRefund = async (invoiceId: string) => {
     setProcessingInvoiceId(invoiceId);
     try {
-      await processRefund(invoiceId);
+      const res = await processRefund(invoiceId);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Refund Processed" });
     } catch (error: any) {
       toast({ title: "Failed to refund", description: error.message, variant: "destructive" });
@@ -142,7 +145,8 @@ export function BillingDashboard({ subscription }: { subscription: any }) {
   const handleRetry = async (invoiceId: string) => {
     setProcessingInvoiceId(invoiceId);
     try {
-      await retryFailedInvoice(invoiceId, gateway);
+      const res = await retryFailedInvoice(invoiceId, gateway);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Payment Retried Successfully" });
     } catch (error: any) {
       toast({ title: "Retry Failed", description: error.message, variant: "destructive" });

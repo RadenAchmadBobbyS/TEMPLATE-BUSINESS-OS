@@ -1,0 +1,23 @@
+---
+title: "SEO Engine"
+description: "Search Engine Optimization capabilities."
+section: "Seo"
+---
+
+## What is the SEO Engine?
+Business OS supports metadata, Open Graph, Twitter Cards, and schema injections natively per page.
+
+## Where is it?
+- Page SEO Settings: `/dashboard/websites/[websiteId]/pages/[pageId]/seo`
+- Redirects: `/dashboard/websites/[websiteId]/redirects`
+
+## How does it work?
+SEO Metadata is stored in the `Page.seoMetadata` JSON column.
+
+During public rendering at `/p/[websiteSlug]`, the server component dynamically generates the Next.js `Metadata` object based on this JSON.
+
+### Sitemap & Robots
+Dynamic generation is supported:
+- `/api/websites/[websiteId]/-/robots.txt`
+- `/api/websites/-/-/sitemap.xml`
+

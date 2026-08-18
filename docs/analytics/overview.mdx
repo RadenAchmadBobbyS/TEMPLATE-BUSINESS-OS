@@ -1,0 +1,24 @@
+---
+title: "Analytics"
+description: "Native traffic and event analytics."
+section: "Analytics"
+---
+
+## What is Analytics?
+Business OS tracks visitors, sessions, pageviews, and events natively without third-party scripts.
+
+## Where is it?
+- Dashboard: `/dashboard/websites/[websiteId]/analytics`
+- Ingestion API: `/api/analytics/collect`
+
+## How does it work?
+Client-side tracking scripts send beacons to `/api/analytics/collect`. The data is processed and stored in PostgreSQL:
+- `AnalyticsVisitor`
+- `AnalyticsSession`
+- `AnalyticsEvent`
+- `PageAnalytics` (Aggregated daily metrics via `date`)
+
+<Callout type="warning">
+Currently, analytics ingestion is handled directly by PostgreSQL. High-velocity deployments may require moving this to Redis or ClickHouse in the future.
+</Callout>
+

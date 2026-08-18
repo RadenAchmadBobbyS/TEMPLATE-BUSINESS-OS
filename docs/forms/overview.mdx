@@ -1,0 +1,18 @@
+---
+title: "Forms & Submissions"
+description: "Website forms integration."
+section: "Forms"
+---
+
+## What is Forms?
+Users can create forms in the Builder and collect submissions.
+
+## Where is it?
+- Form Management: `/dashboard/websites/[websiteId]/forms`
+- Submission List: `/dashboard/websites/[websiteId]/forms/[formId]`
+
+## How does it work?
+1. The `Form` model stores field configurations as JSON.
+2. The published website renders the form dynamically.
+3. Submissions are sent via API and stored in the `FormSubmission` model as JSON `data`.
+

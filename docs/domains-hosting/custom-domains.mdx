@@ -1,0 +1,23 @@
+---
+title: "Custom Domains"
+description: "Routing and domain management."
+section: "Domains Hosting"
+---
+
+## Custom Domains
+Users can attach custom domains to their Websites.
+
+## Where is it?
+- UI: `/dashboard/websites/[websiteId]/domains`
+
+## How does it work?
+The `Domain` model stores hostnames and verification statuses.
+1. User adds a domain.
+2. The platform queries DNS records for verification.
+3. Once verified, `isVerified` becomes true.
+4. Edge routing middleware inspects the `Host` header and rewrites the URL to the internal `/p/_custom_domain_/[hostname]` structure.
+
+<Callout type="info">
+The implementation relies on Vercel Domains API for SSL and infrastructure routing if deployed on Vercel.
+</Callout>
+

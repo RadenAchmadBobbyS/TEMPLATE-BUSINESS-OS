@@ -17,11 +17,15 @@ export function InvitationsList({ invitations }: { invitations: any[] }) {
   const handleAccept = async (token: string, id: string) => {
     setProcessingId(id);
     try {
-      await acceptInvitation(token);
-      toast({ title: 'Invitation accepted!' });
-      router.refresh();
+      const res = await acceptInvitation(token);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: 'Error', description: res.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Invitation accepted!' });
+        router.refresh();
+      }
     } catch (e: any) {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      toast({ title: 'Error', description: e.message || 'Failed to accept', variant: 'destructive' });
     } finally {
       setProcessingId(null);
     }
@@ -30,11 +34,15 @@ export function InvitationsList({ invitations }: { invitations: any[] }) {
   const handleReject = async (token: string, id: string) => {
     setProcessingId(id);
     try {
-      await rejectInvitation(token);
-      toast({ title: 'Invitation rejected' });
-      router.refresh();
+      const res = await rejectInvitation(token);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: 'Error', description: res.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Invitation rejected' });
+        router.refresh();
+      }
     } catch (e: any) {
-      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+      toast({ title: 'Error', description: e.message || 'Failed to reject', variant: 'destructive' });
     } finally {
       setProcessingId(null);
     }

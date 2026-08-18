@@ -7,6 +7,7 @@ import { Loader2, Save, Image as ImageIcon } from "lucide-react";
 
 import { websiteSettingsSchema, WebsiteSettingsInput } from "@/core/websites/schemas";
 import { updateWebsiteSettings } from "@/core/websites/actions";
+import { exportWebsiteAsTemplateJSON } from "@/core/templates/actions";
 import { useToast } from "@/shared/hooks/use-toast";
 import { MediaPickerModal } from "@/core/media/components/MediaPickerModal";
 
@@ -52,19 +53,40 @@ export function WebsiteSettingsForm({ website }: { website: any }) {
   async function onSubmit(data: WebsiteSettingsInput) {
     setIsLoading(true);
     try {
-      await updateWebsiteSettings(website.id, data);
-      toast({
-        title: "Settings Saved",
-        description: "Your website settings have been updated.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save settings.",
-        type: "error",
-      });
+      const res = await updateWebsiteSettings(website.id, data);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Error", description: res.error, variant: "destructive" });
+      } else {
+        toast({ title: "Settings Saved", description: "Your website settings have been updated." });
+      }
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message || "Failed to save settings.", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleExport() {
+    try {
+      const res = await exportWebsiteAsTemplateJSON(website.id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: "Export Failed", description: res.error, variant: "destructive" });
+        return;
+      }
+      if (res.json) {
+        const blob = new Blob([res.json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${website.name}-template.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        toast({ title: "Export Successful", description: "Template JSON downloaded." });
+      }
+    } catch (error: any) {
+      toast({ title: "Export Failed", description: error.message || "An error occurred.", variant: "destructive" });
     }
   }
 
@@ -443,7 +465,10 @@ export function WebsiteSettingsForm({ website }: { website: any }) {
           </TabsContent>
         </Tabs>
 
-        <div className="flex justify-end border-t pt-6">
+        <div className="flex justify-between border-t pt-6">
+          <Button type="button" variant="outline" onClick={handleExport}>
+            Export Website as Template JSON
+          </Button>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Settings

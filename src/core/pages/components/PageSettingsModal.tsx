@@ -97,7 +97,8 @@ export function PageSettingsModal({
   async function onSubmit(data: z.infer<typeof editPageSchema>) {
     setIsLoading(true);
     try {
-      await updatePageSettings(page.id, data);
+      const res = await updatePageSettings(page.id, data);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: 'Page settings updated' });
       onOpenChange(false);
     } catch (error: any) {

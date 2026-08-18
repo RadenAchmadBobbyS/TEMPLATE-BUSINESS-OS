@@ -7,25 +7,31 @@ import { revalidatePath } from "next/cache";
 import { createModelSchema, updateEntrySchema } from "./schemas";
 import { CmsEntryStatus } from "@prisma/client";
 
-async function ensureWebsiteAccess(websiteId: string, actionType: "read" | "write" = "read") {
+async function checkWebsiteAccess(websiteId: string, actionType: "read" | "write" = "read") {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("Unauthorized");
+  if (!session) return { success: false, error: "Unauthorized" };
 
   const role = await prisma.userRole.findFirst({
     where: { userId: session.user.id },
   });
-  if (!role) throw new Error("Workspace access denied");
+  if (!role) return { success: false, error: "Workspace access denied" };
 
   if (actionType === "write" && !["OWNER", "ADMIN", "EDITOR"].includes(role.role)) {
-    throw new Error("Unauthorized to perform this action");
+    return { success: false, error: "Unauthorized to perform this action" };
   }
 
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: role.workspaceId },
   });
-  if (!website) throw new Error("Website not found");
+  if (!website) return { success: false, error: "Website not found" };
 
-  return website;
+  return { success: true, website };
+}
+
+async function ensureWebsiteAccess(websiteId: string, actionType: "read" | "write" = "read") {
+  const access = await checkWebsiteAccess(websiteId, actionType);
+  if (!access.success) throw new Error(access.error);
+  return access.website!;
 }
 
 // =====================================
@@ -41,13 +47,14 @@ export async function getCmsModels(websiteId: string) {
 }
 
 export async function createCmsModel(websiteId: string, data: any) {
-  await ensureWebsiteAccess(websiteId, "write");
+  const access = await checkWebsiteAccess(websiteId, "write");
+  if (!access.success) return { success: false, error: access.error };
   const parsed = createModelSchema.parse(data);
 
   const existing = await prisma.cmsModel.findFirst({
     where: { websiteId, name: parsed.name },
   });
-  if (existing) throw new Error("A model with this name already exists.");
+  if (existing) return { success: false, error: "A model with this name already exists." };
 
   const model = await prisma.cmsModel.create({
     data: {
@@ -58,13 +65,14 @@ export async function createCmsModel(websiteId: string, data: any) {
   });
 
   revalidatePath(`/dashboard/websites/${websiteId}/cms`);
-  return model;
+  return { success: true, model };
 }
 
 export async function deleteCmsModel(modelId: string) {
   const model = await prisma.cmsModel.findUnique({ where: { id: modelId } });
-  if (!model) throw new Error("Model not found");
-  await ensureWebsiteAccess(model.websiteId, "write");
+  if (!model) return { success: false, error: "Model not found" };
+  const access = await checkWebsiteAccess(model.websiteId, "write");
+  if (!access.success) return { success: false, error: access.error };
 
   await prisma.cmsModel.delete({ where: { id: modelId } });
   revalidatePath(`/dashboard/websites/${model.websiteId}/cms`);
@@ -99,8 +107,9 @@ export async function getCmsEntry(entryId: string) {
 
 export async function createCmsEntry(modelId: string, status: CmsEntryStatus = "DRAFT") {
   const model = await prisma.cmsModel.findUnique({ where: { id: modelId } });
-  if (!model) throw new Error("Model not found");
-  await ensureWebsiteAccess(model.websiteId, "write");
+  if (!model) return { success: false, error: "Model not found" };
+  const access = await checkWebsiteAccess(model.websiteId, "write");
+  if (!access.success) return { success: false, error: access.error };
 
   // Initialize with empty data structure based on schema
   const schema = model.schema as any[];
@@ -118,13 +127,14 @@ export async function createCmsEntry(modelId: string, status: CmsEntryStatus = "
   });
 
   revalidatePath(`/dashboard/websites/${model.websiteId}/cms/${modelId}`);
-  return entry;
+  return { success: true, entry };
 }
 
 export async function updateCmsEntry(entryId: string, data: any) {
   const entry = await prisma.cmsEntry.findUnique({ include: { model: true }, where: { id: entryId } });
-  if (!entry) throw new Error("Entry not found");
-  await ensureWebsiteAccess(entry.model.websiteId, "write");
+  if (!entry) return { success: false, error: "Entry not found" };
+  const access = await checkWebsiteAccess(entry.model.websiteId, "write");
+  if (!access.success) return { success: false, error: access.error };
 
   const parsed = updateEntrySchema.parse(data);
 
@@ -136,16 +146,16 @@ export async function updateCmsEntry(entryId: string, data: any) {
     const val = parsed.data[field.id];
     
     if (field.required && (val === undefined || val === null || val === "")) {
-      throw new Error(`Validation Error: Field '${field.label}' is required.`);
+      return { success: false, error: `Validation Error: Field '${field.label}' is required.` };
     }
 
     if (val !== undefined && val !== null && val !== "") {
       // Basic type enforcement
       if (field.type === "number" && typeof val !== "number") {
-        throw new Error(`Validation Error: Field '${field.label}' must be a number.`);
+        return { success: false, error: `Validation Error: Field '${field.label}' must be a number.` };
       }
       if (field.type === "boolean" && typeof val !== "boolean") {
-        throw new Error(`Validation Error: Field '${field.label}' must be a boolean.`);
+        return { success: false, error: `Validation Error: Field '${field.label}' must be a boolean.` };
       }
     }
     
@@ -162,13 +172,14 @@ export async function updateCmsEntry(entryId: string, data: any) {
 
   revalidatePath(`/dashboard/websites/${entry.model.websiteId}/cms/${entry.modelId}`);
   revalidatePath(`/dashboard/websites/${entry.model.websiteId}/cms/${entry.modelId}/${entryId}`);
-  return updated;
+  return { success: true, updated };
 }
 
 export async function deleteCmsEntry(entryId: string) {
   const entry = await prisma.cmsEntry.findUnique({ include: { model: true }, where: { id: entryId } });
-  if (!entry) throw new Error("Entry not found");
-  await ensureWebsiteAccess(entry.model.websiteId, "write");
+  if (!entry) return { success: false, error: "Entry not found" };
+  const access = await checkWebsiteAccess(entry.model.websiteId, "write");
+  if (!access.success) return { success: false, error: access.error };
 
   await prisma.cmsEntry.delete({ where: { id: entryId } });
   revalidatePath(`/dashboard/websites/${entry.model.websiteId}/cms/${entry.modelId}`);

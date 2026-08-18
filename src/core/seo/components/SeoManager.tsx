@@ -38,7 +38,8 @@ export function SeoManager({ page, websiteId }: { page: any, websiteId: string }
         schemaJson
       };
       
-      await updatePageSeo(page.id, websiteId, payload);
+      const res = await updatePageSeo(page.id, websiteId, payload);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "SEO Settings Saved", description: "Metadata updated successfully." });
     } catch (error: any) {
       toast({ title: "Failed to save", variant: "destructive" });

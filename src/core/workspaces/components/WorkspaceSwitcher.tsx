@@ -6,6 +6,7 @@ import { useWorkspace } from './WorkspaceProvider';
 import { setActiveWorkspace } from '../actions';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useToast } from '@/shared/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -27,15 +28,20 @@ export function WorkspaceSwitcher() {
   const isFree = !subscriptionTier || subscriptionTier === 'FREE';
   const ownedCount = workspaces.filter((w) => w.role === 'OWNER').length;
   const quotaExceeded = isFree && ownedCount >= 1;
+  const { toast } = useToast();
 
   const handleSwitch = async (id: string) => {
     if (id === activeWorkspace?.id) return;
     setIsSwitching(true);
     try {
-      await setActiveWorkspace(id);
-      router.refresh();
-    } catch (e) {
-      console.error(e);
+      const res = await setActiveWorkspace(id);
+      if (res && 'success' in res && !res.success) {
+        toast({ title: 'Failed to switch workspace', description: res.error, variant: 'destructive' });
+      } else {
+        router.refresh();
+      }
+    } catch (e: any) {
+      toast({ title: 'Failed to switch workspace', description: e.message || 'An error occurred', variant: 'destructive' });
     } finally {
       setIsSwitching(false);
     }

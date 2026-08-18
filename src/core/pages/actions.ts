@@ -10,21 +10,32 @@ import { getWorkspacePlan } from "@/core/billing/entitlements";
 
 type RoleAccess = "OWNER" | "ADMIN" | "EDITOR";
 
-async function ensureWebsiteAccess(websiteId: string, requiredRole: RoleAccess = "EDITOR") {
+async function checkWebsiteAccess(websiteId: string, requiredRole: RoleAccess = "EDITOR") {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("Unauthorized");
+  if (!session) return { success: false, error: "Unauthorized" };
 
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) throw new Error(active.error);
+  if (!active.success) return { success: false, error: active.error };
   const { workspace, role } = active;
-  checkWorkspacePermission(role, requiredRole);
+  
+  try {
+    checkWorkspacePermission(role, requiredRole);
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
 
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
   });
 
-  if (!website) throw new Error("Website not found or unauthorized");
-  return website;
+  if (!website) return { success: false, error: "Website not found or unauthorized" };
+  return { success: true, website };
+}
+
+async function ensureWebsiteAccess(websiteId: string, requiredRole: RoleAccess = "EDITOR") {
+  const access = await checkWebsiteAccess(websiteId, requiredRole);
+  if (!access.success) throw new Error(access.error);
+  return access.website!;
 }
 
 export async function getPages(websiteId: string) {
@@ -37,14 +48,16 @@ export async function getPages(websiteId: string) {
 }
 
 export async function createPage(websiteId: string, data: any) {
-  const website = await ensureWebsiteAccess(websiteId, "EDITOR");
+  const access = await checkWebsiteAccess(websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
+  const website = access.website!;
   const parsed = createPageSchema.parse(data);
 
   // Check page limits
   const plan = await getWorkspacePlan(website.workspaceId);
   const pageCount = await prisma.page.count({ where: { websiteId, deletedAt: null } });
   if (pageCount >= plan.limits.maxPagesPerWebsite) {
-    throw new Error(`Plan limit reached: You can only have up to ${plan.limits.maxPagesPerWebsite} pages per website on your current plan.`);
+    return { success: false, error: `Plan limit reached: You can only have up to ${plan.limits.maxPagesPerWebsite} pages per website on your current plan.` };
   }
 
   // Check if slug is unique
@@ -53,7 +66,7 @@ export async function createPage(websiteId: string, data: any) {
   });
 
   if (existing) {
-    throw new Error(`A page with slug '${parsed.slug}' already exists.`);
+    return { success: false, error: `A page with slug '${parsed.slug}' already exists.` };
   }
 
   // Get max order
@@ -92,14 +105,16 @@ export async function duplicatePage(pageId: string) {
     where: { id: pageId },
   });
 
-  if (!page) throw new Error("Page not found");
-  const website = await ensureWebsiteAccess(page.websiteId, "EDITOR");
+  if (!page) return { success: false, error: "Page not found" };
+  const access = await checkWebsiteAccess(page.websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
+  const website = access.website!;
 
   // Check page limits
   const plan = await getWorkspacePlan(website.workspaceId);
   const pageCount = await prisma.page.count({ where: { websiteId: page.websiteId, deletedAt: null } });
   if (pageCount >= plan.limits.maxPagesPerWebsite) {
-    throw new Error(`Plan limit reached: You can only have up to ${plan.limits.maxPagesPerWebsite} pages per website on your current plan.`);
+    return { success: false, error: `Plan limit reached: You can only have up to ${plan.limits.maxPagesPerWebsite} pages per website on your current plan.` };
   }
 
   // Get max order
@@ -140,12 +155,13 @@ export async function duplicatePage(pageId: string) {
 
 export async function deletePage(pageId: string) {
   const page = await prisma.page.findUnique({ where: { id: pageId } });
-  if (!page) throw new Error("Page not found");
-  await ensureWebsiteAccess(page.websiteId, "EDITOR");
+  if (!page) return { success: false, error: "Page not found" };
+  const access = await checkWebsiteAccess(page.websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
 
   // Prevent deleting homepage
   if (page.slug === "/") {
-    throw new Error("Cannot delete the homepage.");
+    return { success: false, error: "Cannot delete the homepage." };
   }
 
   // Soft delete (or hard delete based on preference. Using hard delete for simplicity on child pages)
@@ -191,8 +207,9 @@ export async function deletePage(pageId: string) {
 
 export async function updatePageSettings(pageId: string, data: any) {
   const page = await prisma.page.findUnique({ where: { id: pageId } });
-  if (!page) throw new Error("Page not found");
-  await ensureWebsiteAccess(page.websiteId, "EDITOR");
+  if (!page) return { success: false, error: "Page not found" };
+  const access = await checkWebsiteAccess(page.websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
 
   const { title, slug, ...settingsData } = data;
   const parsedSettings = pageSettingsSchema.parse(settingsData);
@@ -200,11 +217,11 @@ export async function updatePageSettings(pageId: string, data: any) {
   const newSlug = slug || page.slug;
 
   if (page.slug === "/" && newSlug !== "/") {
-    throw new Error("Cannot change the slug of the homepage directly. Use 'Set as Homepage' on another page instead.");
+    return { success: false, error: "Cannot change the slug of the homepage directly. Use 'Set as Homepage' on another page instead." };
   }
 
   if (page.slug !== "/" && newSlug === "/") {
-    throw new Error("Cannot manually set slug to '/'. Use 'Set as Homepage' action instead.");
+    return { success: false, error: "Cannot manually set slug to '/'. Use 'Set as Homepage' action instead." };
   }
 
   if (newSlug !== page.slug) {
@@ -212,7 +229,7 @@ export async function updatePageSettings(pageId: string, data: any) {
       where: { websiteId: page.websiteId, slug: newSlug, deletedAt: null },
     });
     if (existing) {
-      throw new Error(`A page with slug '${newSlug}' already exists.`);
+      return { success: false, error: `A page with slug '${newSlug}' already exists.` };
     }
   }
 
@@ -231,8 +248,9 @@ export async function updatePageSettings(pageId: string, data: any) {
 
 export async function togglePublishState(pageId: string, isPublished: boolean) {
   const page = await prisma.page.findUnique({ where: { id: pageId } });
-  if (!page) throw new Error("Page not found");
-  await ensureWebsiteAccess(page.websiteId, "EDITOR");
+  if (!page) return { success: false, error: "Page not found" };
+  const access = await checkWebsiteAccess(page.websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
 
   await prisma.page.update({
     where: { id: pageId },
@@ -244,11 +262,12 @@ export async function togglePublishState(pageId: string, isPublished: boolean) {
 
 export async function setHomepage(pageId: string) {
   const page = await prisma.page.findUnique({ where: { id: pageId } });
-  if (!page) throw new Error("Page not found");
-  await ensureWebsiteAccess(page.websiteId, "EDITOR");
+  if (!page) return { success: false, error: "Page not found" };
+  const access = await checkWebsiteAccess(page.websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
 
   if (page.slug === "/") {
-    throw new Error("Page is already the homepage.");
+    return { success: false, error: "Page is already the homepage." };
   }
 
   const currentHomepage = await prisma.page.findFirst({
@@ -276,8 +295,9 @@ export async function setHomepage(pageId: string) {
 
 export async function reorderPage(pageId: string, direction: "up" | "down") {
   const page = await prisma.page.findUnique({ where: { id: pageId } });
-  if (!page) throw new Error("Page not found");
-  await ensureWebsiteAccess(page.websiteId, "EDITOR");
+  if (!page) return { success: false, error: "Page not found" };
+  const access = await checkWebsiteAccess(page.websiteId, "EDITOR");
+  if (!access.success) return { success: false, error: access.error };
 
   const siblingWhere = {
     websiteId: page.websiteId,
@@ -296,7 +316,7 @@ export async function reorderPage(pageId: string, direction: "up" | "down") {
   });
 
   if (!adjacentPage) {
-    return { success: false, message: "Cannot move further." };
+    return { success: false, error: "Cannot move further." };
   }
 
   // Swap orders

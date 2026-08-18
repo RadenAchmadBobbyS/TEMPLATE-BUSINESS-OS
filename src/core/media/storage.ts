@@ -19,11 +19,7 @@ const s3 = new S3Client({
 
 export async function generateUploadUrl(key: string, contentType: string, expiresIn: number = 3600) {
   if (!IS_S3_CONFIGURED) {
-    return {
-      uploadUrl: `/api/local-upload?key=${encodeURIComponent(key)}`,
-      s3Key: key,
-      publicUrl: `/uploads/${key}`,
-    };
+    throw new Error("S3 storage is not configured. Please check your environment variables.");
   }
 
   const command = new PutObjectCommand({
@@ -41,9 +37,29 @@ export async function generateUploadUrl(key: string, contentType: string, expire
   };
 }
 
+export async function uploadStorageObject(key: string, body: Buffer, contentType: string) {
+  if (!IS_S3_CONFIGURED) {
+    throw new Error("S3 storage is not configured. Please check your environment variables.");
+  }
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: body,
+    ContentType: contentType,
+  });
+
+  await s3.send(command);
+
+  return {
+    s3Key: key,
+    publicUrl: `${PUBLIC_URL}/${key}`,
+  };
+}
+
 export async function deleteStorageObject(key: string) {
   if (!IS_S3_CONFIGURED) {
-    return true; // Mock delete for local fallback
+    throw new Error("S3 storage is not configured. Please check your environment variables.");
   }
 
   try {
@@ -53,9 +69,8 @@ export async function deleteStorageObject(key: string) {
     });
     await s3.send(command);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to delete storage object:", error);
-    // Don't throw for MVP so DB sync doesn't break if S3 object was already deleted
-    return false;
+    throw new Error("Failed to delete object from storage: " + error.message);
   }
 }

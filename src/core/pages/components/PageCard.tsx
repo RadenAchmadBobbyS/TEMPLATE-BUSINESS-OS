@@ -30,7 +30,8 @@ export function PageCard({ page, level = 0, role }: { page: any; level?: number;
   const handleDelete = async () => {
     if (confirm("Are you sure you want to delete this page?")) {
       try {
-        await deletePage(page.id);
+        const res = await deletePage(page.id);
+        if (res && 'success' in res && !res.success) throw new Error(res.error);
         toast({ title: "Page deleted" });
       } catch (error: any) {
         toast({ title: "Delete Failed", description: error.message, variant: "destructive" });
@@ -40,7 +41,8 @@ export function PageCard({ page, level = 0, role }: { page: any; level?: number;
 
   const handleDuplicate = async () => {
     try {
-      await duplicatePage(page.id);
+      const res = await duplicatePage(page.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Page duplicated" });
     } catch {
       toast({ title: "Failed to duplicate", variant: "destructive" });
@@ -50,7 +52,8 @@ export function PageCard({ page, level = 0, role }: { page: any; level?: number;
   const handleTogglePublish = async () => {
     setIsPublishing(true);
     try {
-      await togglePublishState(page.id, !page.isPublished);
+      const res = await togglePublishState(page.id, !page.isPublished);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: page.isPublished ? "Page drafted" : "Page published" });
     } catch {
       toast({ title: "Status update failed", variant: "destructive" });
@@ -61,7 +64,8 @@ export function PageCard({ page, level = 0, role }: { page: any; level?: number;
 
   const handleSetHomepage = async () => {
     try {
-      await setHomepage(page.id);
+      const res = await setHomepage(page.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Homepage updated" });
     } catch (error: any) {
       toast({ title: "Failed to set homepage", description: error.message, variant: "destructive" });
@@ -72,7 +76,7 @@ export function PageCard({ page, level = 0, role }: { page: any; level?: number;
     try {
       const res = await reorderPage(page.id, direction);
       if (!res.success) {
-        toast({ title: "Notice", description: res.message });
+        toast({ title: "Notice", description: res.error as string });
       }
     } catch (error: any) {
       toast({ title: "Failed to reorder", description: error.message, variant: "destructive" });

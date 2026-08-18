@@ -7,13 +7,39 @@ export async function proxy(request: NextRequest) {
   const hostname = request.headers.get("host") || url.hostname;
 
   // Define our application's native hostnames (this should normally come from env variables)
-  const isLocalHost = hostname.includes("localhost") || hostname.includes("127.0.0.1");
-  const isAppDomain = hostname === process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '');
+  const baseAppDomain = process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || "localhost:3000";
+  const isAppDomain = hostname === baseAppDomain || hostname === `www.${baseAppDomain}`;
+  const isRootLocalHost = hostname === "localhost:3000" || hostname === "127.0.0.1:3000";
 
-  const isInternalHost = isLocalHost || isAppDomain;
+  const isInternalHost = isRootLocalHost || isAppDomain;
+  const isSubdomain = hostname.endsWith(`.${baseAppDomain}`) && !isInternalHost;
+  const isLocalSubdomain = hostname.endsWith(".localhost:3000") && !isInternalHost;
 
-  // If this is a request to a custom domain (not localhost or our main app domain)
+  // If this is a request to a custom domain or subdomain
   if (!isInternalHost) {
+    // 1. Fetch redirects for this hostname
+    try {
+      const res = await fetch(new URL(`/api/edge/routing?hostname=${hostname}`, request.url).toString());
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.redirects && data.redirects.length > 0) {
+          const matchedRule = data.redirects.find((r: any) => r.source === url.pathname || (r.source === '/' && url.pathname === ''));
+          if (matchedRule) {
+            // Apply Redirect
+            return NextResponse.redirect(new URL(matchedRule.destination, request.url), { status: matchedRule.permanent ? 301 : 302 });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("PROXY_REDIRECT_FETCH_ERROR", e);
+    }
+
+    // 2. Rewrite
+    if (isSubdomain || isLocalSubdomain) {
+      const rootToReplace = isSubdomain ? `.${baseAppDomain}` : ".localhost:3000";
+      const subdomain = hostname.replace(rootToReplace, "");
+      return NextResponse.rewrite(new URL(`/p/${subdomain}${url.pathname}`, request.url));
+    }
     // Rewrite to our custom domain handler
     return NextResponse.rewrite(new URL(`/p/_custom_domain_/${hostname}${url.pathname}`, request.url));
   }
@@ -24,7 +50,7 @@ export async function proxy(request: NextRequest) {
   // Identify public routes vs protected routes
   const isAuthPage = path === "/login" || path === "/register" || path === "/forgot-password" || path === "/reset-password";
   const isLandingPage = path === "/";
-  const isPublicRoute = isAuthPage || isLandingPage || path.startsWith("/invitations/") || path.startsWith("/p/");
+  const isPublicRoute = isAuthPage || isLandingPage || path.startsWith("/invitations/") || path.startsWith("/p/") || path.startsWith("/docs");
   
   const requiresAuth = !isPublicRoute;
 

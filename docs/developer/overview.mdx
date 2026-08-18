@@ -1,0 +1,20 @@
+---
+title: "Developer Overview"
+description: "Architecture and APIs."
+section: "Developer"
+---
+
+## Architecture
+The application is built on Next.js 15+ App Router using React Server Components.
+
+### Directory Structure
+- `src/app`: Routing layer and page components.
+- `src/core`: Domain-specific business logic (e.g., `/builder`, `/analytics`).
+- `src/shared`: Reusable UI components, utilities, and libraries.
+
+### Database
+Prisma ORM over PostgreSQL. Migrations are stored in `prisma/migrations`.
+
+### Authentication
+Authentication is handled by Better Auth, verifying sessions via middleware and Server Actions.
+

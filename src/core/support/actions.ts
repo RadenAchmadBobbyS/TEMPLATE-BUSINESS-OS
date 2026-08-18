@@ -10,14 +10,20 @@ import { dispatchNotification } from "@/core/notifications/dispatcher";
 import { NotificationTypes } from "@/core/notifications/types";
 
 // Helper: Check if user is Super Admin
-async function checkSuperAdmin() {
+async function checkSuperAdminReturn() {
   const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) throw new Error("Unauthorized");
+  if (!session) return { success: false, error: "Unauthorized" };
   
   const user = await prisma.user.findUnique({ where: { id: session.user.id }, select: { id: true, isSuperAdmin: true } });
-  if (!user?.isSuperAdmin) throw new Error("Forbidden: Super Admin access required.");
+  if (!user?.isSuperAdmin) return { success: false, error: "Forbidden: Super Admin access required." };
   
-  return user.id;
+  return { success: true, id: user.id };
+}
+
+async function checkSuperAdmin() {
+  const result = await checkSuperAdminReturn();
+  if (!result.success) throw new Error(result.error);
+  return result.id!;
 }
 
 // Helper: Audit Logging
@@ -76,9 +82,10 @@ export async function getTicket(ticketId: string) {
 
 export async function createTicket(data: any) {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) throw new Error(active.error);
+  if (!active.success) return { success: false, error: active.error };
   const { workspace } = active;
   const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) return { success: false, error: "Unauthorized" };
   const parsed = createTicketSchema.parse(data);
 
   const ticket = await prisma.ticket.create({
@@ -110,7 +117,7 @@ export async function createTicket(data: any) {
   }
 
   revalidatePath("/support");
-  return ticket;
+  return { success: true, ticket };
 }
 
 export async function addTicketMessage(ticketId: string, data: any) {
@@ -121,8 +128,8 @@ export async function addTicketMessage(ticketId: string, data: any) {
   const parsed = addReplySchema.parse(data);
 
   const ticket = await prisma.ticket.findUnique({ where: { id: ticketId, workspaceId: workspace.id } });
-  if (!ticket) throw new Error("Ticket not found");
-  if (ticket.status === "CLOSED") throw new Error("Cannot reply to a closed ticket");
+  if (!ticket) return { success: false, error: "Ticket not found" };
+  if (ticket.status === "CLOSED") return { success: false, error: "Cannot reply to a closed ticket" };
 
   await prisma.ticketReply.create({
     data: {
@@ -148,7 +155,7 @@ export async function closeTicket(ticketId: string) {
   const { workspace } = active;
 
   const ticket = await prisma.ticket.findUnique({ where: { id: ticketId, workspaceId: workspace.id } });
-  if (!ticket) throw new Error("Ticket not found");
+  if (!ticket) return { success: false, error: "Ticket not found" };
 
   await prisma.ticket.update({
     where: { id: ticket.id },
@@ -195,7 +202,9 @@ export async function getAdminTicket(ticketId: string) {
 }
 
 export async function assignTicket(ticketId: string, assignedUserId: string) {
-  const adminId = await checkSuperAdmin();
+  const adminResult = await checkSuperAdminReturn();
+  if (!adminResult.success) return adminResult;
+  const adminId = adminResult.id!;
 
   const ticket = await prisma.ticket.update({
     where: { id: ticketId },
@@ -219,7 +228,9 @@ export async function assignTicket(ticketId: string, assignedUserId: string) {
 }
 
 export async function updateTicketStatus(ticketId: string, status: any) {
-  const adminId = await checkSuperAdmin();
+  const adminResult = await checkSuperAdminReturn();
+  if (!adminResult.success) return adminResult;
+  const adminId = adminResult.id!;
   const parsed = updateTicketStatusSchema.parse({ status });
 
   const ticket = await prisma.ticket.update({
@@ -252,7 +263,9 @@ export async function updateTicketStatus(ticketId: string, status: any) {
 }
 
 export async function updateTicketPriority(ticketId: string, priority: any) {
-  const adminId = await checkSuperAdmin();
+  const adminResult = await checkSuperAdminReturn();
+  if (!adminResult.success) return adminResult;
+  const adminId = adminResult.id!;
   const parsed = updateTicketPrioritySchema.parse({ priority });
 
   const ticket = await prisma.ticket.update({
@@ -268,14 +281,16 @@ export async function updateTicketPriority(ticketId: string, priority: any) {
 }
 
 export async function adminReplyToTicket(ticketId: string, data: any) {
-  const adminId = await checkSuperAdmin();
+  const adminResult = await checkSuperAdminReturn();
+  if (!adminResult.success) return adminResult;
+  const adminId = adminResult.id!;
   const parsed = addReplySchema.parse(data);
 
   const ticket = await prisma.ticket.findUnique({ 
     where: { id: ticketId },
     include: { workspace: { select: { members: { where: { role: "OWNER" }, select: { userId: true } } } } }
   });
-  if (!ticket) throw new Error("Ticket not found");
+  if (!ticket) return { success: false, error: "Ticket not found" };
 
   await prisma.ticketReply.create({
     data: {

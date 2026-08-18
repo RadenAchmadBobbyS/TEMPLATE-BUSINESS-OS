@@ -34,10 +34,11 @@ export function TopToolbar({ websiteId = "", pageId = "" }: { websiteId?: string
       try {
         const rootNode = nodes[0] || { id: "root", type: "Container", props: {}, children: [] };
         
-        await savePageVersion(pageId, {
+        const res = await savePageVersion(pageId, {
           version: 1,
           root: rootNode
         });
+        if (res && 'success' in res && !res.success) throw new Error(res.error);
         
         setIsDirty(false);
         toast({ title: "Saved successfully", description: "Your page has been saved." });
@@ -54,7 +55,7 @@ export function TopToolbar({ websiteId = "", pageId = "" }: { websiteId?: string
     setIsPublishing(true);
     try {
       const result = await deployWebsite(websiteId);
-      if (result.error) {
+      if (result && 'success' in result && !result.success) {
         toast({ variant: "destructive", title: "Publish Failed", description: result.error });
       } else {
         toast({ title: "Published successfully", description: "Your website is now live." });

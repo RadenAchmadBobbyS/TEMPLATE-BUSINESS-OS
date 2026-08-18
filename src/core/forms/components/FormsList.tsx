@@ -70,7 +70,7 @@ export function FormsList({ websiteId, forms }: { websiteId: string, forms: any[
 
     setIsLoading(true);
     try {
-      await createForm(websiteId, { 
+      const res = await createForm(websiteId, { 
         name, 
         fields: normalizedFields,
         settings: {
@@ -79,6 +79,7 @@ export function FormsList({ websiteId, forms }: { websiteId: string, forms: any[
           captchaEnabled: captcha
         }
       });
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Form created" });
       setIsCreateOpen(false);
       setName("");
@@ -92,7 +93,8 @@ export function FormsList({ websiteId, forms }: { websiteId: string, forms: any[
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure? This will delete the form and ALL its submissions.")) {
       try {
-        await deleteForm(id);
+        const res = await deleteForm(id);
+        if (res && 'success' in res && !res.success) throw new Error(res.error);
         toast({ title: "Form deleted" });
       } catch (error: any) {
         toast({ title: "Error", description: error.message, variant: "destructive" });

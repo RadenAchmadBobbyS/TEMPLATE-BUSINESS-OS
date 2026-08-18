@@ -21,7 +21,7 @@ export function DeployDashboard({ website, deployments }: { website: any, deploy
     setIsDeploying(true);
     try {
       const result = await deployWebsite(website.id);
-      if (result.error) {
+      if (result && 'success' in result && !result.success) {
         toast({ title: "Deployment failed", description: result.error, variant: "destructive" });
       } else {
         toast({ title: "Deployment successful!", description: "Your site is now live on the edge network." });
@@ -36,7 +36,8 @@ export function DeployDashboard({ website, deployments }: { website: any, deploy
   const handleClearCache = async () => {
     setIsClearing(true);
     try {
-      await clearCache(website.id);
+      const res = await clearCache(website.id);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Cache Cleared", description: "Edge nodes have been invalidated." });
     } catch (error: any) {
       toast({ title: "Failed to clear cache", description: error.message, variant: "destructive" });
@@ -50,7 +51,8 @@ export function DeployDashboard({ website, deployments }: { website: any, deploy
 
     setRollingBackId(deploymentId);
     try {
-      await rollbackWebsite(website.id, deploymentId);
+      const res = await rollbackWebsite(website.id, deploymentId);
+      if (res && 'success' in res && !res.success) throw new Error(res.error);
       toast({ title: "Rollback successful!", description: `Website restored to v${version}.` });
     } catch (error: any) {
       toast({ title: "Rollback failed", description: error.message, variant: "destructive" });

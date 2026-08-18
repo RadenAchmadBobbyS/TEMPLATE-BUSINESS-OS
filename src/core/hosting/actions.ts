@@ -6,13 +6,67 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import dns from "dns";
 
+async function addDomainToVercel(hostname: string) {
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  const token = process.env.VERCEL_API_TOKEN;
+  const teamId = process.env.VERCEL_TEAM_ID;
+
+  if (!projectId || !token) {
+    throw new Error("Vercel integration is not configured. Missing VERCEL_PROJECT_ID or VERCEL_API_TOKEN.");
+  }
+
+  let url = `https://api.vercel.com/v10/projects/${projectId}/domains`;
+  if (teamId) url += `?teamId=${teamId}`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name: hostname }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error?.message || "Failed to add domain to hosting provider.");
+  }
+  return data;
+}
+
+async function removeDomainFromVercel(hostname: string) {
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  const token = process.env.VERCEL_API_TOKEN;
+  const teamId = process.env.VERCEL_TEAM_ID;
+
+  if (!projectId || !token) return; // Silent return on remove if not configured, or throw? Let's not block deletion in our DB
+
+  let url = `https://api.vercel.com/v9/projects/${projectId}/domains/${hostname}`;
+  if (teamId) url += `?teamId=${teamId}`;
+
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const data = await res.json();
+    console.error("Failed to remove domain from Vercel:", data);
+  }
+}
+
 import { requireActiveWorkspace, requireActiveWorkspaceAction, checkWorkspacePermission } from "@/core/workspaces/server-context";
 
-async function ensureWebsiteAccess(websiteId: string, requiredRole: "OWNER" | "ADMIN" | "EDITOR" = "EDITOR") {
+async function checkWebsiteAccess(websiteId: string, requiredRole: "OWNER" | "ADMIN" | "EDITOR" = "EDITOR") {
   const active = await requireActiveWorkspaceAction();
-  if (!active.success) throw new Error(active.error);
+  if (!active.success) return { success: false, error: active.error };
   const { workspace, role } = active;
-  checkWorkspacePermission(role, requiredRole);
+  
+  try {
+    checkWorkspacePermission(role, requiredRole);
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
   
   const website = await prisma.website.findFirst({
     where: { id: websiteId, workspaceId: workspace.id },
@@ -29,9 +83,15 @@ async function ensureWebsiteAccess(websiteId: string, requiredRole: "OWNER" | "A
       domains: true,
     }
   });
-  if (!website) throw new Error("Website not found");
+  if (!website) return { success: false, error: "Website not found" };
   
-  return website;
+  return { success: true, website };
+}
+
+async function ensureWebsiteAccess(websiteId: string, requiredRole: "OWNER" | "ADMIN" | "EDITOR" = "EDITOR") {
+  const access = await checkWebsiteAccess(websiteId, requiredRole);
+  if (!access.success) throw new Error(access.error);
+  return access.website!;
 }
 
 // =====================================
@@ -40,7 +100,9 @@ async function ensureWebsiteAccess(websiteId: string, requiredRole: "OWNER" | "A
 
 export async function deployWebsite(websiteId: string) {
   try {
-    const website = await ensureWebsiteAccess(websiteId);
+    const access = await checkWebsiteAccess(websiteId);
+    if (!access.success) return { error: access.error };
+    const website = access.website!;
 
     // SIMULATE DEPLOYMENT TO EDGE
     const start = Date.now();
@@ -116,34 +178,36 @@ export async function deployWebsite(websiteId: string) {
     revalidatePath(`/builder/${websiteId}`);
     revalidatePath(`/dashboard/websites/${websiteId}/deploy`);
 
-    return { deployment };
+    return { success: true, deployment };
   } catch (error: any) {
     console.error("[DEPLOYMENT_ERROR]", error);
-    return { error: error.message || "Failed to deploy website" };
+    return { success: false, error: error.message || "Failed to deploy website" };
   }
 }
 
 export async function clearCache(websiteId: string) {
-  await ensureWebsiteAccess(websiteId);
+  const access = await checkWebsiteAccess(websiteId);
+  if (!access.success) return { success: false, error: access.error };
   // Simulates clearing CDN Cache
   await new Promise(resolve => setTimeout(resolve, 1500));
   return { success: true, message: "Edge cache cleared globally." };
 }
 
 export async function rollbackWebsite(websiteId: string, deploymentId: string) {
-  await ensureWebsiteAccess(websiteId);
+  const access = await checkWebsiteAccess(websiteId);
+  if (!access.success) return { success: false, error: access.error };
 
   const deployment = await prisma.deployment.findUnique({
     where: { id: deploymentId }
   });
 
   if (!deployment || deployment.websiteId !== websiteId) {
-    throw new Error("Deployment not found");
+    return { success: false, error: "Deployment not found" };
   }
 
   // 1. Extract Snapshot
   const snapshot = deployment.snapshot as any;
-  if (!snapshot || !snapshot.pages) throw new Error("Invalid snapshot payload");
+  if (!snapshot || !snapshot.pages) return { success: false, error: "Invalid snapshot payload" };
 
   // 2. Perform Rollback: Overwrite active DB state with snapshot
   // (In a real app with 100% DB-driven rendering, you might just point a pointer 
@@ -192,7 +256,8 @@ export async function getDomains(websiteId: string) {
 }
 
 export async function addDomain(websiteId: string, hostname: string) {
-  await ensureWebsiteAccess(websiteId);
+  const access = await checkWebsiteAccess(websiteId);
+  if (!access.success) return { success: false, error: access.error };
   
   // Clean hostname
   const cleanHostname = hostname.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/$/, '');
@@ -201,7 +266,7 @@ export async function addDomain(websiteId: string, hostname: string) {
     where: { hostname: cleanHostname }
   });
 
-  if (existing) throw new Error("Domain already in use");
+  if (existing) return { success: false, error: "Domain already in use" };
   
   const verificationToken = `businessos-domain-verification=${crypto.randomUUID()}`;
 
@@ -217,13 +282,16 @@ export async function addDomain(websiteId: string, hostname: string) {
   });
 
   revalidatePath(`/dashboard/websites/${websiteId}/domains`);
-  return domain;
+  return { success: true, domain };
 }
 
 export async function removeDomain(domainId: string) {
   const domain = await prisma.domain.findUnique({ where: { id: domainId } });
-  if (!domain) throw new Error("Domain not found");
-  await ensureWebsiteAccess(domain.websiteId);
+  if (!domain) return { success: false, error: "Domain not found" };
+  const access = await checkWebsiteAccess(domain.websiteId);
+  if (!access.success) return { success: false, error: access.error };
+
+  await removeDomainFromVercel(domain.hostname).catch(console.error);
 
   await prisma.domain.delete({ where: { id: domainId } });
   revalidatePath(`/dashboard/websites/${domain.websiteId}/domains`);
@@ -232,8 +300,9 @@ export async function removeDomain(domainId: string) {
 
 export async function verifyDomain(domainId: string) {
   const domain = await prisma.domain.findUnique({ where: { id: domainId } });
-  if (!domain) throw new Error("Domain not found");
-  await ensureWebsiteAccess(domain.websiteId);
+  if (!domain) return { success: false, error: "Domain not found" };
+  const access = await checkWebsiteAccess(domain.websiteId);
+  if (!access.success) return { success: false, error: access.error };
 
   let isVerified = false;
   
@@ -254,28 +323,36 @@ export async function verifyDomain(domainId: string) {
   }
 
   if (!isVerified) {
-    throw new Error("Verification failed. TXT record not found or does not match.");
+    return { success: false, error: "Verification failed. TXT record not found or does not match." };
+  }
+
+  // Provision domain via external provider (Vercel)
+  try {
+    await addDomainToVercel(domain.hostname);
+  } catch (providerError: any) {
+    return { success: false, error: providerError.message };
   }
 
   const updated = await prisma.domain.update({
     where: { id: domainId },
     data: {
       isVerified: true,
-      sslStatus: "ACTIVE" // Mocking successful Let's Encrypt provisioning
+      sslStatus: "ACTIVE" // The external provider will handle SSL provisioning. Marking as active upon successful API addition.
     }
   });
 
   revalidatePath(`/dashboard/websites/${domain.websiteId}/domains`);
-  return updated;
+  return { success: true, domain: updated };
 }
 
 export async function setPrimaryDomain(domainId: string) {
   const domain = await prisma.domain.findUnique({ where: { id: domainId } });
-  if (!domain) throw new Error("Domain not found");
-  await ensureWebsiteAccess(domain.websiteId);
+  if (!domain) return { success: false, error: "Domain not found" };
+  const access = await checkWebsiteAccess(domain.websiteId);
+  if (!access.success) return { success: false, error: access.error };
 
   if (!domain.isVerified) {
-    throw new Error("Only verified domains can be set as primary.");
+    return { success: false, error: "Only verified domains can be set as primary." };
   }
 
   // Use transaction to ensure only one primary domain

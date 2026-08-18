@@ -22,7 +22,7 @@ export function ThemeToggle() {
           <Button
             variant="ghost"
             size="icon"
-            className="rounded-none hover:bg-[rgba(20,23,31,0.05)]"
+            className="rounded-none hover:bg-accent"
             style={{ color: 'var(--ink)' }}
           >
             <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
@@ -42,19 +42,19 @@ export function ThemeToggle() {
         }}
       >
         <DropdownMenuItem
-          className="rounded-none focus:bg-[rgba(36,81,255,0.08)]"
+          className="rounded-none focus:bg-accent"
           onClick={() => setTheme('light')}
         >
           Light
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="rounded-none focus:bg-[rgba(36,81,255,0.08)]"
+          className="rounded-none focus:bg-accent"
           onClick={() => setTheme('dark')}
         >
           Dark
         </DropdownMenuItem>
         <DropdownMenuItem
-          className="rounded-none focus:bg-[rgba(36,81,255,0.08)]"
+          className="rounded-none focus:bg-accent"
           onClick={() => setTheme('system')}
         >
           System

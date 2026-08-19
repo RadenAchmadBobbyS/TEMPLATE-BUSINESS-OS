@@ -1,6 +1,8 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY || "");
+// We provide a dummy "re_" string if missing so the Next.js build doesn't crash at module evaluation.
+// The actual send function will block sending if the real key is missing.
+const resend = new Resend(process.env.RESEND_API_KEY || "re_dummy12345");
 
 export interface SendEmailOptions {
   to: string;

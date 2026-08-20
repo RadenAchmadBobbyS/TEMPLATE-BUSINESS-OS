@@ -1,0 +1,210 @@
+# Documentation Quality Audit Report
+
+- **Total Articles:** 89
+- **Thin Content Articles:** 89
+- **Articles with Potential Issues (Links/Terminology/Accuracy):** 112
+
+## Thin Content
+- **admin/audit-logs.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **admin/impersonation.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **admin/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **admin/users.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **admin/workspaces.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **analytics/events.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **analytics/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **analytics/realtime.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **analytics/retention.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **analytics/sessions.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **analytics/visitors.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **billing/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **billing/plans.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **billing/stripe.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **billing/subscriptions.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **billing/webhooks.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/canvas.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/components.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/page-versions.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/preview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/properties.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **builder/sections.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **cms/entries.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **cms/fields.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **cms/models.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **cms/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **cms/references.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **configuration/billing.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **configuration/email.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **configuration/environment.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **configuration/storage.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **deployment/database.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **deployment/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **deployment/production-checklist.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **deployment/storage.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **deployment/vercel.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **developer/api.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **developer/architecture.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **developer/authentication.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **developer/database.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **developer/server-actions.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **domains/custom-domains.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **domains/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **domains/ssl.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **domains/subdomains.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **domains/verification.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **forms/create.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **forms/notifications.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **forms/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **forms/submissions.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **getting-started/create-website.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **getting-started/introduction.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **getting-started/publish.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **getting-started/workspace.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **media/assets.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **media/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **media/upload.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **notifications/email.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **notifications/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **notifications/preferences.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **redirects/301-302.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **redirects/create.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **redirects/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **seo/metadata.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **seo/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **seo/robots.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **seo/sitemap.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **seo/structured-data.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **support/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **support/replies.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **support/status.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **support/tickets.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **templates/clone.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **templates/export.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **templates/marketplace.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **templates/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **themes/colors.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **themes/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **themes/typography.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **websites/create.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **websites/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **websites/pages.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **websites/publishing.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **websites/settings.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **workspace/members.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **workspace/overview.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **workspace/roles.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+- **workspace/settings.mdx** (26 words): Very short content, likely lacks step-by-step guides.
+
+## Potential Issues (Missing Links, Inaccurate Content)
+- **admin/audit-logs.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **admin/impersonation.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **admin/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **admin/users.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **admin/workspaces.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/events.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/events.mdx**: MISSING DB/API: Analytics should mention AnalyticsVisitor, AnalyticsSession, or /api/analytics/collect.
+- **analytics/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/overview.mdx**: MISSING DB/API: Analytics should mention AnalyticsVisitor, AnalyticsSession, or /api/analytics/collect.
+- **analytics/realtime.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/realtime.mdx**: MISSING DB/API: Analytics should mention AnalyticsVisitor, AnalyticsSession, or /api/analytics/collect.
+- **analytics/retention.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/retention.mdx**: MISSING DB/API: Analytics should mention AnalyticsVisitor, AnalyticsSession, or /api/analytics/collect.
+- **analytics/sessions.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/sessions.mdx**: MISSING DB/API: Analytics should mention AnalyticsVisitor, AnalyticsSession, or /api/analytics/collect.
+- **analytics/visitors.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **analytics/visitors.mdx**: MISSING DB/API: Analytics should mention AnalyticsVisitor, AnalyticsSession, or /api/analytics/collect.
+- **billing/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **billing/overview.mdx**: WRONG TERMINOLOGY/MISSING: Billing should mention SubscriptionTier, Stripe, or PLAN_LIMITS.
+- **billing/plans.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **billing/plans.mdx**: WRONG TERMINOLOGY/MISSING: Billing should mention SubscriptionTier, Stripe, or PLAN_LIMITS.
+- **billing/stripe.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **billing/stripe.mdx**: WRONG TERMINOLOGY/MISSING: Billing should mention SubscriptionTier, Stripe, or PLAN_LIMITS.
+- **billing/subscriptions.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **billing/subscriptions.mdx**: WRONG TERMINOLOGY/MISSING: Billing should mention SubscriptionTier, Stripe, or PLAN_LIMITS.
+- **billing/webhooks.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **billing/webhooks.mdx**: WRONG TERMINOLOGY/MISSING: Billing should mention SubscriptionTier, Stripe, or PLAN_LIMITS.
+- **builder/canvas.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/canvas.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **builder/components.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/components.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **builder/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/overview.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **builder/page-versions.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/page-versions.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **builder/preview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/preview.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **builder/properties.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/properties.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **builder/sections.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **builder/sections.mdx**: MISSING ARCHITECTURE DETAILS: Builder docs should mention nodeTree, PageVersion, etc.
+- **cms/entries.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **cms/fields.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **cms/models.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **cms/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **cms/references.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **configuration/billing.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **configuration/email.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **configuration/environment.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **configuration/storage.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **deployment/database.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **deployment/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **deployment/production-checklist.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **deployment/storage.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **deployment/vercel.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **developer/api.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **developer/architecture.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **developer/authentication.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **developer/database.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **developer/server-actions.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **domains/custom-domains.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **domains/custom-domains.mdx**: MISSING FLOW: Domains should mention proxy routing and Vercel API.
+- **domains/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **domains/overview.mdx**: MISSING FLOW: Domains should mention proxy routing and Vercel API.
+- **domains/ssl.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **domains/ssl.mdx**: MISSING FLOW: Domains should mention proxy routing and Vercel API.
+- **domains/subdomains.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **domains/subdomains.mdx**: MISSING FLOW: Domains should mention proxy routing and Vercel API.
+- **domains/verification.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **domains/verification.mdx**: MISSING FLOW: Domains should mention proxy routing and Vercel API.
+- **forms/create.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **forms/notifications.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **forms/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **forms/submissions.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **getting-started/create-website.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **getting-started/introduction.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **getting-started/publish.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **getting-started/workspace.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **media/assets.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **media/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **media/upload.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **notifications/email.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **notifications/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **notifications/preferences.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **redirects/301-302.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **redirects/create.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **redirects/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **seo/metadata.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **seo/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **seo/robots.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **seo/sitemap.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **seo/structured-data.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **support/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **support/replies.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **support/status.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **support/tickets.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **templates/clone.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **templates/export.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **templates/marketplace.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **templates/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **themes/colors.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **themes/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **themes/typography.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **websites/create.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **websites/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **websites/pages.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **websites/publishing.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **websites/settings.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **workspace/members.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **workspace/overview.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **workspace/roles.mdx**: MISSING CROSS LINKS: No markdown links found in this article.
+- **workspace/settings.mdx**: MISSING CROSS LINKS: No markdown links found in this article.

@@ -1,19 +1,22 @@
 ---
-title: "CMS Overview"
-description: "Headless content management system."
-section: "Cms"
+title: "Overview"
+description: "The headless CMS architecture."
 ---
 
-## What is the CMS?
-The CMS allows users to define custom data models and create dynamic entries for their websites.
+# Overview
 
-## Where is it?
-- Models List: `/dashboard/websites/[websiteId]/cms`
-- Model Details: `/dashboard/websites/[websiteId]/cms/[modelId]`
-- Entry Editor: `/dashboard/websites/[websiteId]/cms/[modelId]/[entryId]`
+The headless CMS architecture.
 
-## How does it work?
-The CMS relies on two primary database tables:
-1. `CmsModel`: Defines the schema (e.g., Blog Post, Product) as JSON.
-2. `CmsEntry`: Stores the actual content instances using the `CmsEntryStatus` (DRAFT, PUBLISHED, SCHEDULED).
+Business OS includes a built-in headless CMS. It consists of `CmsModel`s (schemas) and `CmsEntry`s (data).
 
+<CardGrid>
+  <Card title="Models" href="/docs/cms/models">Define the structure of your data.</Card>
+  <Card title="Entries" href="/docs/cms/entries">Manage the actual content.</Card>
+</CardGrid>
+
+## Next Steps
+To learn more about Overview and how it integrates into Business OS, explore the related categories in the sidebar.
+
+<CardGrid>
+  <Card title="Back to cms" href="/docs/cms">Return to category overview</Card>
+</CardGrid>

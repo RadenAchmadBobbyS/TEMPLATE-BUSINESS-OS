@@ -1,94 +1,119 @@
 import Link from "next/link";
-import { Button } from "@/shared/ui/button";
-import { ArrowRight, BookOpen, Layout, FileText, Globe, LineChart, Code } from "lucide-react";
+import { AlgoliaSearch } from "@/core/docs/components/AlgoliaSearch";
 
 export default function DocsHomePage() {
   return (
-    <div className="space-y-12 pb-16">
+    <div className="space-y-16 pb-16 pt-8 max-w-4xl">
       {/* Hero Section */}
       <div className="space-y-6">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground">
+        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
           Business OS Documentation
         </h1>
-        <p className="text-xl text-muted-foreground leading-relaxed max-w-3xl">
+        <p className="text-xl text-muted-foreground leading-relaxed">
           Build, manage, publish, and scale websites with Business OS.
-          Everything you need to build websites, manage content, connect domains, analyze traffic, and operate your business.
         </p>
-        <div className="flex flex-wrap gap-4 pt-4">
-          <Button size="lg" asChild>
-            <Link href="/docs/getting-started/quickstart">
-              Quickstart <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button variant="outline" size="lg" asChild>
-            <Link href="/docs/developer/overview">
-              Developer API <Code className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+        <div className="pt-4 w-full">
+          <AlgoliaSearch />
         </div>
       </div>
 
-      {/* Quick Start Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <Link href="/docs/getting-started/introduction" className="group border rounded-xl p-6 hover:border-primary/50 hover:bg-muted/30 transition-all">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-            <BookOpen className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">Getting Started</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Create your workspace and build your first website.
-          </p>
-        </Link>
-        
-        <Link href="/docs/website-builder/overview" className="group border rounded-xl p-6 hover:border-primary/50 hover:bg-muted/30 transition-all">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-            <Layout className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">Website Builder</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Learn how to build pages using the visual builder.
-          </p>
-        </Link>
+      <hr className="border-border" />
 
-        <Link href="/docs/cms/overview" className="group border rounded-xl p-6 hover:border-primary/50 hover:bg-muted/30 transition-all">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-            <FileText className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">CMS</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Create dynamic content and collections.
-          </p>
-        </Link>
+      {/* GETTING STARTED */}
+      <div className="space-y-6">
+        <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">Getting Started</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Link href="/docs/getting-started/introduction" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground">
+            Introduction
+          </Link>
+          <Link href="/docs/getting-started" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground">
+            Quickstart
+          </Link>
+          <Link href="/docs/getting-started/workspace" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground">
+            Create Workspace
+          </Link>
+          <Link href="/docs/getting-started/create-website" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground">
+            Create Website
+          </Link>
+        </div>
+      </div>
 
-        <Link href="/docs/domains-hosting/custom-domains" className="group border rounded-xl p-6 hover:border-primary/50 hover:bg-muted/30 transition-all">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-            <Globe className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">Custom Domains</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Connect your own domain and publish your website.
-          </p>
-        </Link>
+      {/* EXPLORE BUSINESS OS */}
+      <div className="space-y-6">
+        <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">Explore Business OS</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          <Link href="/docs/workspace" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Workspace
+          </Link>
+          <Link href="/docs/builder" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Website Builder
+          </Link>
+          <Link href="/docs/cms" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            CMS
+          </Link>
+          <Link href="/docs/themes" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Themes
+          </Link>
+          <Link href="/docs/media" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Media
+          </Link>
+          <Link href="/docs/seo" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            SEO
+          </Link>
+          <Link href="/docs/domains" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Domains
+          </Link>
+          <Link href="/docs/analytics" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Analytics
+          </Link>
+          <Link href="/docs/forms" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Forms
+          </Link>
+          <Link href="/docs/billing" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Billing
+          </Link>
+        </div>
+      </div>
 
-        <Link href="/docs/analytics/overview" className="group border rounded-xl p-6 hover:border-primary/50 hover:bg-muted/30 transition-all">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-            <LineChart className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">Analytics</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Understand visitors, sessions, and pageviews.
-          </p>
-        </Link>
+      {/* PLATFORM */}
+      <div className="space-y-6">
+        <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">Platform</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <Link href="/docs/templates" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Templates
+          </Link>
+          <Link href="/docs/notifications" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Notifications
+          </Link>
+          <Link href="/docs/support" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Support
+          </Link>
+          <Link href="/docs/admin" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Administration
+          </Link>
+        </div>
+      </div>
 
-        <Link href="/docs/developer/overview" className="group border rounded-xl p-6 hover:border-primary/50 hover:bg-muted/30 transition-all">
-          <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-            <Code className="h-5 w-5 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">Developer</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Integrate Business OS into your development workflow.
-          </p>
-        </Link>
+      {/* DEVELOPER */}
+      <div className="space-y-6">
+        <h2 className="text-sm font-semibold tracking-widest text-muted-foreground uppercase">Developer</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <Link href="/docs/developer/architecture" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Architecture
+          </Link>
+          <Link href="/docs/developer/api" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            API
+          </Link>
+          <Link href="/docs/developer/database" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Database
+          </Link>
+          <Link href="/docs/configuration" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Configuration
+          </Link>
+          <Link href="/docs/deployment" className="p-4 border rounded-xl hover:border-primary/50 hover:shadow-sm bg-card transition-all font-medium text-foreground text-center">
+            Deployment
+          </Link>
+        </div>
       </div>
     </div>
   );

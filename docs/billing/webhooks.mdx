@@ -1,15 +1,17 @@
 ---
 title: "Webhooks"
-description: "Documentation pending codebase audit verification."
-section: "Billing"
+description: "Processing billing events."
 ---
 
 # Webhooks
 
-<Callout type="warning" title="Implementation Status">
-This feature (`Webhooks`) has either not yet been fully implemented in the codebase or its precise behavior is pending documentation audit. 
-Please refer to the source code or roadmap for intended behavior.
-</Callout>
+Processing billing events.
 
-## Verification Pending
-Documentation will be updated once the implementation footprint (Routes, UI, Database schema, and Server Actions) is fully verified in the `Business OS` repository.
+Stripe webhooks update the `Invoice`, `Transaction`, and `Subscription` records asynchronously via the `/api/webhooks/stripe` endpoint.
+
+## Next Steps
+To learn more about Webhooks and how it integrates into Business OS, explore the related categories in the sidebar.
+
+<CardGrid>
+  <Card title="Back to billing" href="/docs/billing">Return to category overview</Card>
+</CardGrid>

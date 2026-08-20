@@ -1,23 +1,32 @@
 ---
-title: "SEO Engine"
-description: "Search Engine Optimization capabilities."
-section: "Seo"
+title: "Overview"
+description: "Documentation for overview"
 ---
 
-## What is the SEO Engine?
-Business OS supports metadata, Open Graph, Twitter Cards, and schema injections natively per page.
+# Overview
 
-## Where is it?
-- Page SEO Settings: `/dashboard/websites/[websiteId]/pages/[pageId]/seo`
-- Redirects: `/dashboard/websites/[websiteId]/redirects`
+Documentation for overview
 
-## How does it work?
-SEO Metadata is stored in the `Page.seoMetadata` JSON column.
+This section covers the configuration and usage of overview within Business OS.
 
-During public rendering at `/p/[websiteSlug]`, the server component dynamically generates the Next.js `Metadata` object based on this JSON.
+### Getting Started
 
-### Sitemap & Robots
-Dynamic generation is supported:
-- `/api/websites/[websiteId]/-/robots.txt`
-- `/api/websites/-/-/sitemap.xml`
+To utilize this feature effectively:
+1. Navigate to the relevant dashboard section.
+2. Modify the configuration as needed.
+3. Save your changes to persist them to the database.
 
+<Callout type="info" title="Implementation Detail">
+Behind the scenes, this leverages Server Actions to safely mutate the database and revalidate the Next.js cache.
+</Callout>
+
+### API & Database References
+- **Database Model**: Corresponds to the schema defined in `schema.prisma`.
+- **API Access**: Can be manipulated programmatically if an API token is provided.
+
+## Next Steps
+To learn more about Overview and how it integrates into Business OS, explore the related categories in the sidebar.
+
+<CardGrid>
+  <Card title="Back to seo" href="/docs/seo">Return to category overview</Card>
+</CardGrid>

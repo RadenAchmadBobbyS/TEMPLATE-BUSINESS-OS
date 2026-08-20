@@ -1,0 +1,33 @@
+---
+title: "Overview"
+description: "The Business OS Website Builder."
+---
+
+# Overview
+
+The Business OS Website Builder.
+
+The Website Builder is a visual drag-and-drop interface that constructs a JSON representation of your page layout.
+
+### Architecture
+
+The builder does not generate HTML directly. Instead, it generates a `nodeTree`—a recursive JSON structure that describes the components, their properties, and their hierarchy.
+
+```json
+{
+  "type": "Container",
+  "props": { "padding": "2rem" },
+  "children": [
+    { "type": "Text", "props": { "content": "Hello World" } }
+  ]
+}
+```
+
+When a page is rendered, the rendering engine maps these nodes to actual React components.
+
+## Next Steps
+To learn more about Overview and how it integrates into Business OS, explore the related categories in the sidebar.
+
+<CardGrid>
+  <Card title="Back to builder" href="/docs/builder">Return to category overview</Card>
+</CardGrid>

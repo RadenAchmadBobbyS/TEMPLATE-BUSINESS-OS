@@ -116,4 +116,11 @@ export const MdxComponents = {
   ul: ({ children, ...props }: any) => <ul className="my-6 ml-6 list-disc [&>li]:mt-2 text-muted-foreground" {...props}>{children}</ul>,
   ol: ({ children, ...props }: any) => <ol className="my-6 ml-6 list-decimal [&>li]:mt-2 text-muted-foreground" {...props}>{children}</ol>,
   li: ({ children, ...props }: any) => <li {...props}>{children}</li>,
+  table: ({ children, ...props }: any) => (
+    <div className="my-6 w-full overflow-x-auto rounded-lg border">
+      <table className="w-full text-sm text-left" {...props}>{children}</table>
+    </div>
+  ),
+  th: ({ children, ...props }: any) => <th className="border-b bg-muted/50 px-4 py-3 font-medium text-muted-foreground" {...props}>{children}</th>,
+  td: ({ children, ...props }: any) => <td className="border-b px-4 py-3 text-foreground" {...props}>{children}</td>,
 };

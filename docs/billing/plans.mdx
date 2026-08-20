@@ -1,15 +1,22 @@
 ---
 title: "Plans"
-description: "Documentation pending codebase audit verification."
-section: "Billing"
+description: "Subscription Tiers."
 ---
 
 # Plans
 
-<Callout type="warning" title="Implementation Status">
-This feature (`Plans`) has either not yet been fully implemented in the codebase or its precise behavior is pending documentation audit. 
-Please refer to the source code or roadmap for intended behavior.
-</Callout>
+Subscription Tiers.
 
-## Verification Pending
-Documentation will be updated once the implementation footprint (Routes, UI, Database schema, and Server Actions) is fully verified in the `Business OS` repository.
+The `SubscriptionTier` enum defines the available plans:
+- **FREE**: Basic access.
+- **STARTER**: Increased limits.
+- **PRO**: Custom domains and advanced analytics.
+
+These tiers map directly to `PLAN_LIMITS` enforced throughout the application.
+
+## Next Steps
+To learn more about Plans and how it integrates into Business OS, explore the related categories in the sidebar.
+
+<CardGrid>
+  <Card title="Back to billing" href="/docs/billing">Return to category overview</Card>
+</CardGrid>

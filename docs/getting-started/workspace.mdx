@@ -1,15 +1,35 @@
 ---
 title: "Workspace"
-description: "Documentation pending codebase audit verification."
-section: "Getting Started"
+description: "Create and manage your first workspace."
 ---
 
 # Workspace
 
-<Callout type="warning" title="Implementation Status">
-This feature (`Workspace`) has either not yet been fully implemented in the codebase or its precise behavior is pending documentation audit. 
-Please refer to the source code or roadmap for intended behavior.
-</Callout>
+Create and manage your first workspace.
 
-## Verification Pending
-Documentation will be updated once the implementation footprint (Routes, UI, Database schema, and Server Actions) is fully verified in the `Business OS` repository.
+A Workspace is the top-level organizational unit (see `Workspace` model in Prisma). It isolates websites, assets, users, and audit logs. Users are attached to workspaces via the `UserRole` mapping table, which determines their permissions (OWNER, ADMIN, EDITOR).
+
+### How to Create a Workspace
+
+1. Log in and navigate to your dashboard.
+2. Click **New Workspace** in the sidebar.
+3. Enter a unique Workspace Name and Slug.
+4. Click **Create**.
+
+Once created, you can [invite members](/docs/workspace/members) to collaborate.
+
+<CodeBlock>
+// Internal API Reference
+POST /api/workspaces
+{
+  "name": "Acme Corp",
+  "slug": "acme-corp"
+}
+</CodeBlock>
+
+## Next Steps
+To learn more about Workspace and how it integrates into Business OS, explore the related categories in the sidebar.
+
+<CardGrid>
+  <Card title="Back to getting-started" href="/docs/getting-started">Return to category overview</Card>
+</CardGrid>

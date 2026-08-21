@@ -63,7 +63,10 @@ export function AlgoliaSearch() {
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden bg-popover gap-0 border-border">
+        <DialogContent
+          showCloseButton={false}
+          className="sm:max-w-[600px] p-0 overflow-hidden bg-popover gap-0 border-border"
+        >
           <VisuallyHidden>
              <DialogTitle>Search Documentation</DialogTitle>
              <DialogDescription>Search for guides and references</DialogDescription>

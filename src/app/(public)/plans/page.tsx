@@ -1,141 +1,357 @@
-import { PLAN_LIMITS } from "@/core/billing/plans.config";
-import { PageHeader, GridBackdrop } from "@/shared/ui/blueprint";
-import { Reveal, StaggerContainer, StaggerItem } from "@/shared/ui/motion";
-import { Button } from "@/shared/ui/button";
-import { Check, X, ArrowRight } from "lucide-react";
-import Link from "next/link";
-import { SubscriptionTier } from "@prisma/client";
+import Link from 'next/link';
+import { ArrowRight, Check, X, HelpCircle } from 'lucide-react';
+import { PLAN_LIMITS } from '@/core/billing/plans.config';
+import { GridBackdrop, CornerMarks } from '@/shared/ui/blueprint';
+import { SubscriptionTier } from '@prisma/client';
 
-const formatBytes = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(0)) + ' ' + sizes[i];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+function formatBytes(bytes: number): string {
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(0)} GB`;
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)} MB`;
+  return `${bytes} B`;
+}
+function formatNum(n: number): string {
+  if (n >= 999999) return 'Unlimited';
+  return n.toLocaleString();
+}
+
+// ─── Plan definitions (display metadata only) ─────────────────────────────────
+const TIERS: { id: SubscriptionTier; name: string; price: string; monthly: string; highlight: boolean; badge?: string; description: string }[] = [
+  {
+    id: 'FREE',
+    name: 'Free',
+    price: '$0',
+    monthly: 'forever',
+    highlight: false,
+    description: 'Explore Business OS and build your first website at no cost.',
+  },
+  {
+    id: 'STARTER',
+    name: 'Starter',
+    price: '$15',
+    monthly: '/ month',
+    highlight: false,
+    description: 'For freelancers and small projects that need a custom domain.',
+  },
+  {
+    id: 'PRO',
+    name: 'Pro',
+    price: '$49',
+    monthly: '/ month',
+    highlight: true,
+    badge: 'Most Popular',
+    description: 'The complete toolkit for growing businesses and teams.',
+  },
+  {
+    id: 'BUSINESS',
+    name: 'Business',
+    price: '$199',
+    monthly: '/ month',
+    highlight: false,
+    description: 'High-volume agencies managing multiple client websites.',
+  },
+];
+
+// ─── Feature rows for comparison ─────────────────────────────────────────────
+type FeatureDef = {
+  label: string;
+  key: keyof (typeof PLAN_LIMITS)[SubscriptionTier];
+  type: 'bool' | 'string';
+  getValue?: (tier: SubscriptionTier) => string;
 };
 
-const formatLimit = (limit: number) => {
-  if (limit >= 999999) return "Unlimited";
-  return limit.toLocaleString();
-};
+const FEATURE_ROWS: FeatureDef[] = [
+  { label: 'Websites', key: 'maxWebsites', type: 'string', getValue: (t) => formatNum(PLAN_LIMITS[t].maxWebsites) },
+  { label: 'Pages per website', key: 'maxPagesPerWebsite', type: 'string', getValue: (t) => formatNum(PLAN_LIMITS[t].maxPagesPerWebsite) },
+  { label: 'Storage', key: 'maxStorageBytes', type: 'string', getValue: (t) => formatBytes(PLAN_LIMITS[t].maxStorageBytes) },
+  { label: 'Team members', key: 'maxTeamMembers', type: 'string', getValue: (t) => formatNum(PLAN_LIMITS[t].maxTeamMembers) },
+  { label: 'Custom domains', key: 'maxCustomDomainsPerWebsite', type: 'string', getValue: (t) => formatNum(PLAN_LIMITS[t].maxCustomDomainsPerWebsite) },
+  { label: 'Form builder', key: 'hasFormBuilder', type: 'bool' },
+  { label: 'Advanced media', key: 'hasAdvancedMedia', type: 'bool' },
+  { label: 'Role-based access', key: 'hasRoleBasedAccess', type: 'bool' },
+  { label: 'Advanced SEO tools', key: 'hasAdvancedSeo', type: 'bool' },
+  { label: 'Advanced analytics', key: 'hasAdvancedAnalytics', type: 'bool' },
+  { label: 'White labeling', key: 'hasWhiteLabeling', type: 'bool' },
+  { label: 'Dedicated support', key: 'hasDedicatedSupport', type: 'bool' },
+];
 
-export default function PlansPage() {
-  const tiers: { id: SubscriptionTier; name: string; price: string; description: string }[] = [
-    { id: "FREE", name: "Free", price: "$0", description: "Perfect for personal projects and exploring the platform." },
-    { id: "STARTER", name: "Starter", price: "$15", description: "For freelancers and small websites with custom domains." },
-    { id: "PRO", name: "Pro", price: "$49", description: "For growing businesses needing advanced features and limits." },
-    { id: "BUSINESS", name: "Business", price: "$199", description: "For agencies and large scale operations." },
-  ];
+// ─── FAQ ─────────────────────────────────────────────────────────────────────
+const FAQ = [
+  {
+    q: 'Can I start for free?',
+    a: 'Yes. The Free plan lets you build one website with up to 5 pages and 100MB storage — no credit card required.',
+  },
+  {
+    q: 'Can I upgrade or downgrade at any time?',
+    a: 'Yes. You can change your plan at any time from your workspace billing settings. Changes take effect immediately.',
+  },
+  {
+    q: 'What happens to my websites if I downgrade?',
+    a: 'Your websites and data are always preserved. If you exceed the limits of your new plan, some features may become read-only until you upgrade again.',
+  },
+  {
+    q: 'Do you offer annual pricing?',
+    a: 'Yes. Annual billing is available and offers a discount compared to month-to-month pricing. You can switch billing cycles from your account settings.',
+  },
+];
 
-  return (
-    <div className="py-20 sm:py-28 relative">
-      <GridBackdrop className="opacity-20" />
-      
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-        <Reveal>
-          <PageHeader
-            eyebrow="PRICING"
-            title="Plans that scale with you"
-            description="Transparent pricing based on the features and scale you need. No hidden fees."
-          />
-        </Reveal>
-
-        <StaggerContainer className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {tiers.map((tier) => {
-            const limits = PLAN_LIMITS[tier.id];
-            const isPopular = tier.id === "PRO";
-
-            return (
-              <StaggerItem
-                key={tier.id}
-                className={`relative flex flex-col border p-6 bg-paper ${
-                  isPopular ? "border-signal ring-1 ring-signal shadow-lg" : "border-line"
-                }`}
-              >
-                {isPopular && (
-                  <div className="absolute top-0 right-0 transform translate-x-2 -translate-y-2">
-                    <span className="bg-signal text-white text-[10px] font-data px-2 py-1 font-bold">MOST POPULAR</span>
-                  </div>
-                )}
-                
-                <h3 className="font-display text-xl font-bold">{tier.name}</h3>
-                <div className="mt-4 mb-2 flex items-baseline text-4xl font-extrabold">
-                  {tier.price}
-                  <span className="ml-1 text-sm font-medium text-muted-foreground">/mo</span>
-                </div>
-                <p className="text-sm text-muted-foreground min-h-[40px] mb-6">
-                  {tier.description}
-                </p>
-                
-                <Button 
-                  asChild 
-                  variant={isPopular ? "default" : "outline"} 
-                  className={`w-full mb-8 ${isPopular ? "bg-signal hover:bg-signal/90 text-white" : ""}`}
-                >
-                  <Link href="/register">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-
-                <div className="flex flex-col gap-4 flex-1">
-                  <div className="font-data text-xs text-muted-foreground uppercase border-b pb-2 mb-2">Usage Limits</div>
-                  
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Websites</span>
-                    <span className="font-medium">{formatLimit(limits.maxWebsites)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Pages / Site</span>
-                    <span className="font-medium">{formatLimit(limits.maxPagesPerWebsite)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Storage</span>
-                    <span className="font-medium">{formatBytes(limits.maxStorageBytes)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Team Members</span>
-                    <span className="font-medium">{formatLimit(limits.maxTeamMembers)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Custom Domains</span>
-                    <span className="font-medium">{formatLimit(limits.maxCustomDomainsPerWebsite)}</span>
-                  </div>
-
-                  <div className="font-data text-xs text-muted-foreground uppercase border-b pb-2 mt-4 mb-2">Features</div>
-
-                  <FeatureItem label="Custom Domains" included={limits.hasCustomDomains} />
-                  <FeatureItem label="Form Builder" included={limits.hasFormBuilder} />
-                  <FeatureItem label="Advanced Media" included={limits.hasAdvancedMedia} />
-                  <FeatureItem label="Role Based Access" included={limits.hasRoleBasedAccess} />
-                  <FeatureItem label="Advanced SEO" included={limits.hasAdvancedSeo} />
-                  <FeatureItem label="Advanced Analytics" included={limits.hasAdvancedAnalytics} />
-                  <FeatureItem label="White Labeling" included={limits.hasWhiteLabeling} />
-                  
-                </div>
-              </StaggerItem>
-            );
-          })}
-        </StaggerContainer>
-      </div>
-    </div>
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function BoolCell({ value }: { value: boolean }) {
+  return value ? (
+    <span
+      className="mx-auto flex h-5 w-5 items-center justify-center"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--signal) 12%, transparent)' }}
+    >
+      <Check className="h-3 w-3" style={{ color: 'var(--signal)' }} />
+    </span>
+  ) : (
+    <span
+      className="mx-auto flex h-5 w-5 items-center justify-center"
+      style={{ backgroundColor: 'color-mix(in srgb, var(--slate) 10%, transparent)' }}
+    >
+      <X className="h-3 w-3" style={{ color: 'var(--slate)' }} />
+    </span>
   );
 }
 
-function FeatureItem({ label, included }: { label: string; included: boolean }) {
+// ─── Page ─────────────────────────────────────────────────────────────────────
+export default function PlansPage() {
   return (
-    <div className="flex items-center gap-3 text-sm">
-      {included ? (
-        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-signal/10 text-signal">
-          <Check className="h-3.5 w-3.5" />
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--paper)', color: 'var(--ink)' }}>
+
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden border-b-2" style={{ borderColor: 'var(--ink)' }}>
+        <GridBackdrop className="opacity-[0.3]" />
+        <div className="relative mx-auto max-w-7xl px-4 pt-20 pb-16 sm:px-6 sm:pt-28 sm:pb-20 lg:px-8 text-center">
+          <span
+            className="font-data mb-4 inline-flex items-center gap-2 text-xs"
+            style={{ color: 'var(--signal)' }}
+          >
+            <span className="h-1.5 w-1.5" style={{ backgroundColor: 'var(--amber)' }} />
+            PRICING
+          </span>
+          <h1
+            className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl mb-6"
+            style={{ color: 'var(--ink)' }}
+          >
+            Plans that scale with you
+          </h1>
+          <p className="text-lg max-w-2xl mx-auto" style={{ color: 'var(--slate)' }}>
+            Transparent pricing — no hidden fees. Start free and upgrade as your business grows.
+          </p>
         </div>
-      ) : (
-        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground/50">
-          <X className="h-3.5 w-3.5" />
+      </section>
+
+      {/* ── Pricing cards ────────────────────────────────────────────────── */}
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {TIERS.map((tier) => {
+            const limits = PLAN_LIMITS[tier.id];
+            return (
+              <div
+                key={tier.id}
+                className="relative flex flex-col border-2"
+                style={{
+                  borderColor: tier.highlight ? 'var(--signal)' : 'var(--ink)',
+                  backgroundColor: 'var(--paper)',
+                  boxShadow: tier.highlight ? '4px 4px 0 var(--signal)' : '4px 4px 0 var(--ink)',
+                }}
+              >
+                <CornerMarks />
+
+                {tier.badge && (
+                  <div
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 text-[10px] font-bold font-data whitespace-nowrap"
+                    style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+                  >
+                    {tier.badge}
+                  </div>
+                )}
+
+                <div className="p-6 flex flex-col flex-1">
+                  {/* Plan name + price */}
+                  <div className="mb-6">
+                    <h2
+                      className="font-display text-xl font-bold mb-1"
+                      style={{ color: 'var(--ink)' }}
+                    >
+                      {tier.name}
+                    </h2>
+                    <p className="text-sm mb-4" style={{ color: 'var(--slate)' }}>
+                      {tier.description}
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="font-display text-4xl font-extrabold" style={{ color: 'var(--ink)' }}>
+                        {tier.price}
+                      </span>
+                      <span className="text-sm" style={{ color: 'var(--slate)' }}>
+                        {tier.monthly}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* CTA */}
+                  <Link
+                    href="/register"
+                    className="mb-8 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold border-2 transition-transform hover:-translate-y-0.5"
+                    style={
+                      tier.highlight
+                        ? { backgroundColor: 'var(--signal)', borderColor: 'var(--signal)', color: '#fff' }
+                        : { backgroundColor: 'transparent', borderColor: 'var(--ink)', color: 'var(--ink)' }
+                    }
+                  >
+                    Get Started <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
+
+                  {/* Key limits */}
+                  <div className="space-y-3 text-sm border-t-2 pt-6 flex-1" style={{ borderColor: 'var(--line)' }}>
+                    {[
+                      { label: 'Websites', value: formatNum(limits.maxWebsites) },
+                      { label: 'Pages / site', value: formatNum(limits.maxPagesPerWebsite) },
+                      { label: 'Storage', value: formatBytes(limits.maxStorageBytes) },
+                      { label: 'Team members', value: formatNum(limits.maxTeamMembers) },
+                      { label: 'Custom domains', value: formatNum(limits.maxCustomDomainsPerWebsite) },
+                    ].map(({ label, value }) => (
+                      <div
+                        key={label}
+                        className="flex justify-between items-center"
+                      >
+                        <span style={{ color: 'var(--slate)' }}>{label}</span>
+                        <span className="font-semibold" style={{ color: 'var(--ink)' }}>{value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      )}
-      <span className={included ? "text-foreground" : "text-muted-foreground line-through"}>
-        {label}
-      </span>
+
+        {/* ── Feature comparison table ──────────────────────────────────── */}
+        <div className="mt-20">
+          <h2 className="font-display text-2xl font-bold mb-8" style={{ color: 'var(--ink)' }}>
+            Full feature comparison
+          </h2>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th
+                    className="py-3 px-4 text-left font-data text-xs uppercase border-b-2"
+                    style={{ borderColor: 'var(--ink)', color: 'var(--slate)' }}
+                  >
+                    Feature
+                  </th>
+                  {TIERS.map((t) => (
+                    <th
+                      key={t.id}
+                      className="py-3 px-4 text-center font-display font-bold border-b-2"
+                      style={{
+                        borderColor: 'var(--ink)',
+                        color: t.highlight ? 'var(--signal)' : 'var(--ink)',
+                      }}
+                    >
+                      {t.name}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {FEATURE_ROWS.map((row, idx) => (
+                  <tr
+                    key={row.key}
+                    style={{ backgroundColor: idx % 2 === 0 ? 'transparent' : 'color-mix(in srgb, var(--line) 30%, transparent)' }}
+                  >
+                    <td className="py-3 px-4 border-b" style={{ borderColor: 'var(--line)', color: 'var(--ink)' }}>
+                      {row.label}
+                    </td>
+                    {TIERS.map((t) => {
+                      const val = PLAN_LIMITS[t.id][row.key];
+                      return (
+                        <td
+                          key={t.id}
+                          className="py-3 px-4 text-center border-b"
+                          style={{ borderColor: 'var(--line)' }}
+                        >
+                          {row.type === 'bool' ? (
+                            <BoolCell value={val as boolean} />
+                          ) : (
+                            <span style={{ color: 'var(--ink)' }}>
+                              {row.getValue?.(t.id) ?? String(val)}
+                            </span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* ── FAQ ──────────────────────────────────────────────────────────── */}
+        <div className="mt-20">
+          <h2 className="font-display text-2xl font-bold mb-8 flex items-center gap-2" style={{ color: 'var(--ink)' }}>
+            <HelpCircle className="h-6 w-6" style={{ color: 'var(--slate)' }} />
+            Frequently asked questions
+          </h2>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {FAQ.map((item) => (
+              <div
+                key={item.q}
+                className="border-2 p-6"
+                style={{ borderColor: 'var(--line)', backgroundColor: 'var(--paper)' }}
+              >
+                <h3 className="font-display font-semibold mb-2" style={{ color: 'var(--ink)' }}>
+                  {item.q}
+                </h3>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--slate)' }}>
+                  {item.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Bottom CTA ───────────────────────────────────────────────────── */}
+      <section
+        className="border-t-2 py-20"
+        style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--ink)' }}
+      >
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <h2
+            className="font-display text-3xl font-bold tracking-tight mb-4"
+            style={{ color: 'var(--paper)' }}
+          >
+            Start building for free
+          </h2>
+          <p
+            className="mb-8 text-base max-w-md mx-auto"
+            style={{ color: 'color-mix(in srgb, var(--paper) 70%, transparent)' }}
+          >
+            No credit card required. Upgrade whenever you're ready.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-2 px-8 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5"
+              style={{ backgroundColor: 'var(--signal)', color: '#fff' }}
+            >
+              Get Started Free <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 px-8 py-3 text-sm font-medium border-2 transition-transform hover:-translate-y-0.5"
+              style={{ borderColor: 'color-mix(in srgb, var(--paper) 30%, transparent)', color: 'color-mix(in srgb, var(--paper) 80%, transparent)' }}
+            >
+              Sign In
+            </Link>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

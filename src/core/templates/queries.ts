@@ -38,3 +38,17 @@ export async function getTemplates(params?: {
     orderBy: { createdAt: 'desc' },
   });
 }
+
+export async function getTemplate(slugOrId: string) {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(slugOrId);
+
+  return prisma.template.findFirst({
+    where: isUuid 
+      ? { OR: [{ slug: slugOrId }, { id: slugOrId }] }
+      : { slug: slugOrId },
+    include: {
+      category: true,
+      industry: true,
+    }
+  });
+}

@@ -8,6 +8,8 @@ import { AlgoliaSearch } from "@/core/docs/components/AlgoliaSearch";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/shared/ui/sheet";
 import { Button } from "@/shared/ui/button";
 
+import { usePathname } from "next/navigation";
+
 const navLinks = [
   { label: "Showcase", href: "/showcase" },
   { label: "Docs", href: "/docs" },
@@ -16,6 +18,8 @@ const navLinks = [
 ];
 
 export function PublicNavbar() {
+  const pathname = usePathname();
+
   return (
     <nav
       className="sticky top-0 z-50 border-b backdrop-blur-lg"
@@ -26,22 +30,29 @@ export function PublicNavbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-6 lg:gap-10">
-          <BlueprintLogo />
+          <Link href="/">
+            <BlueprintLogo />
+          </Link>
           
           <div
             className="font-data hidden items-center gap-8 text-sm md:flex"
             style={{ fontSize: "13px" }}
           >
-            {navLinks.map((link) => (
-              <Link
-                key={link.label}
-                href={link.href}
-                className="flex items-center gap-1.5 transition-colors hover:opacity-100"
-                style={{ color: "var(--slate)" }}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className={`flex items-center gap-1.5 transition-colors hover:opacity-100 ${
+                    isActive ? "opacity-100 font-semibold" : "opacity-70"
+                  }`}
+                  style={{ color: isActive ? "var(--ink)" : "var(--slate)" }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
         </div>
 
@@ -82,15 +93,20 @@ export function PublicNavbar() {
                     <AlgoliaSearch />
                   </div>
                   <div className="flex flex-col gap-4 mt-4">
-                    {navLinks.map((link) => (
-                      <Link
-                        key={link.label}
-                        href={link.href}
-                        className="text-lg font-medium transition-colors hover:text-primary"
-                      >
-                        {link.label}
-                      </Link>
-                    ))}
+                    {navLinks.map((link) => {
+                      const isActive = pathname.startsWith(link.href);
+                      return (
+                        <Link
+                          key={link.label}
+                          href={link.href}
+                          className={`text-lg transition-colors hover:text-primary ${
+                            isActive ? "font-bold text-ink" : "font-medium text-slate"
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      );
+                    })}
                   </div>
                   <div className="flex flex-col gap-3 mt-6 pt-6 border-t border-border">
                     <Link href="/login">

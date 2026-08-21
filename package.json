@@ -80,7 +80,7 @@
     "typescript": "^5"
   },
   "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed-templates.ts"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [

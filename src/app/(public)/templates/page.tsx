@@ -50,11 +50,11 @@ function TemplateCard({ template }: { template: Template }) {
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
           />
           <div
-            className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+            className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-200 group-hover:opacity-100"
             style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}
           >
             <span
-              className="px-4 py-2 text-sm font-medium border-2"
+              className="border-2 px-4 py-2 text-sm font-medium"
               style={{
                 borderColor: 'var(--paper)',
                 backgroundColor: 'var(--ink)',
@@ -68,16 +68,16 @@ function TemplateCard({ template }: { template: Template }) {
 
         {/* Info */}
         <div className="p-4">
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="mb-2 flex items-start justify-between gap-2">
             <h3
-              className="font-display font-semibold text-base leading-snug truncate"
+              className="font-display truncate text-base leading-snug font-semibold"
               style={{ color: 'var(--ink)' }}
             >
               {template.name}
             </h3>
             {template.requiredTier !== 'FREE' && (
               <Badge
-                className="shrink-0 font-data text-[10px] rounded-none border"
+                className="font-data shrink-0 rounded-none border text-[10px]"
                 style={{
                   borderColor: 'var(--amber)',
                   backgroundColor: 'transparent',
@@ -118,7 +118,7 @@ async function TemplateGrid({
       >
         <CornerMarks />
         <Search className="mx-auto mb-4 h-8 w-8" style={{ color: 'var(--slate)' }} />
-        <h3 className="font-display text-lg font-semibold mb-1" style={{ color: 'var(--ink)' }}>
+        <h3 className="font-display mb-1 text-lg font-semibold" style={{ color: 'var(--ink)' }}>
           No templates found
         </h3>
         <p className="text-sm" style={{ color: 'var(--slate)' }}>
@@ -154,12 +154,12 @@ export default async function PublicTemplatesPage({
   const [categories] = await Promise.all([getCategories()]);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: 'var(--paper)', color: 'var(--ink)' }}
-    >
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--paper)', color: 'var(--ink)' }}>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b-2" style={{ borderColor: 'var(--ink)' }}>
+      <section
+        className="relative overflow-hidden border-b-2"
+        style={{ borderColor: 'var(--ink)' }}
+      >
         <GridBackdrop className="opacity-[0.3]" />
         <div className="relative mx-auto max-w-7xl px-4 pt-20 pb-16 sm:px-6 sm:pt-28 sm:pb-20 lg:px-8">
           <div className="max-w-3xl">
@@ -171,12 +171,15 @@ export default async function PublicTemplatesPage({
               TEMPLATE MARKETPLACE
             </span>
             <h1
-              className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl mb-6"
+              className="font-display mb-6 text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
               style={{ color: 'var(--ink)' }}
             >
               Website Templates
             </h1>
-            <p className="text-lg leading-relaxed max-w-2xl mb-10" style={{ color: 'var(--slate)' }}>
+            <p
+              className="mb-10 max-w-2xl text-lg leading-relaxed"
+              style={{ color: 'var(--slate)' }}
+            >
               Browse professionally designed templates for every industry. Each template is fully
               customizable in the Business OS visual builder — no code required.
             </p>
@@ -204,14 +207,19 @@ export default async function PublicTemplatesPage({
                 {Array.from({ length: 8 }).map((_, i) => (
                   <div
                     key={i}
-                    className="aspect-[4/3] border-2 animate-pulse"
+                    className="aspect-[4/3] animate-pulse border-2"
                     style={{ borderColor: 'var(--line)', backgroundColor: 'var(--line)' }}
                   />
                 ))}
               </div>
             }
           >
-            <TemplateGrid search={search} categoryId={categoryId} industryId={industryId} tier={tier as any} />
+            <TemplateGrid
+              search={search}
+              categoryId={categoryId}
+              industryId={industryId}
+              tier={tier as any}
+            />
           </Suspense>
         </div>
       </section>
@@ -221,14 +229,17 @@ export default async function PublicTemplatesPage({
         className="border-t-2 py-20"
         style={{ borderColor: 'var(--ink)', backgroundColor: 'var(--ink)' }}
       >
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <h2
-            className="font-display text-3xl font-bold tracking-tight mb-4"
+            className="font-display mb-4 text-3xl font-bold tracking-tight"
             style={{ color: 'var(--paper)' }}
           >
             Ready to build your website?
           </h2>
-          <p className="mb-8 text-base" style={{ color: 'color-mix(in srgb, var(--paper) 70%, transparent)' }}>
+          <p
+            className="mb-8 text-base"
+            style={{ color: 'color-mix(in srgb, var(--paper) 70%, transparent)' }}
+          >
             Sign up free and choose a template to get started in minutes.
           </p>
           <Link
